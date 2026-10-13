@@ -1,0 +1,8 @@
+# build output (the release APK in dist/ is committed on purpose)
+build/
+app/build/
+.gradle/
+local.properties
+*.iml
+.idea/
+.DS_Store

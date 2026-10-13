@@ -1,0 +1,5 @@
+// Gradle build for Android Studio. The shipped APK is built with ./build.sh
+// (plain Android build tools, no Gradle needed).
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
