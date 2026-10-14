@@ -41,6 +41,18 @@ public final class Shots {
         return true;
     }
 
+    /** Holds a region long enough for a long press. */
+    public static boolean longTap(int id) {
+        int[] r = game.ui.find(id);
+        if (r == null) return false;
+        int x = r[0] + r[2] / 2, y = r[1] + r[3] / 2;
+        game.touchDown(x, y);
+        step((int) Ui.LONG_MS + 100);
+        game.touchUp(x, y);
+        step(40);
+        return true;
+    }
+
     public static void tapAt(int x, int y) {
         game.touchDown(x, y);
         game.frame(16);
@@ -94,7 +106,14 @@ public final class Shots {
         shot("battle_choose");
         tap(31);
         shot("battle_enemyinfo");
-        tap(4); // first special weapon
+        longTap(2);
+        waitFor("WeaponScreen", 1500);
+        step(400);
+        shot("battle_longpress");
+        game.back();
+        waitFor("BattleScreen", 1500);
+        step(700);
+        tap(1); // Stein
         step(250);
         shot("battle_chant");
         step(1100);
@@ -107,8 +126,7 @@ public final class Shots {
             if (t.equals("RewardScreen") || t.equals("GameOverScreen")) break;
             if (t.equals("BattleScreen") && game.ui.find(1) != null) {
                 if (!shotUsed) { shot("battle_used"); shotUsed = true; }
-                int n = 1 + rr.nextInt(6);
-                if (game.ui.find(n) == null) n = 1 + rr.nextInt(3);
+                int n = 1 + rr.nextInt(game.profile.run.player.weapons.size());
                 tap(n);
                 step(400);
                 continue;
@@ -123,25 +141,23 @@ public final class Shots {
         }
         System.out.println("after battle: " + top());
         if (top().equals("RewardScreen")) {
-            step(1200);
-            shot("reward_cards");
-            tap(10);
-            step(400);
-            shot("equip");
-            tap(130);
-            step(500);
-            tap(4);
-            step(400);
+            step(1000);
             shot("box_closed");
             tap(1);
             step(1300);
             shot("box_open");
             step(1200);
             shot("box_show");
-            tap(2);
+            tap(2); // into the arsenal
+            step(1400);
+            shot("reward_cards");
+            tap(10);
+            step(400);
+            shot("equip");
+            tap(100 + 3 * 10);
             step(500);
-            shot("replace");
-            tap(100);
+            shot("reward_cards_equipped");
+            tap(4);
             waitFor("MapScreen", 3000);
             step(400);
             shot("map2");
@@ -151,7 +167,6 @@ public final class Shots {
             tap(1);
             step(800);
         }
-        if (top().equals("ArsenalScreen")) { tap(1); step(500); }
         if (top().equals("MapScreen")) {
             tap(2);
             step(400);
@@ -162,11 +177,6 @@ public final class Shots {
             tap(10);
             step(400);
             shot("cardpick");
-            game.back();
-            step(400);
-            tap(2);
-            step(400);
-            shot("weaponpick");
             game.back();
             step(400);
             game.back();

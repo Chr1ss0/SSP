@@ -1,6 +1,6 @@
 package de.chr1ss0.ssp.core;
 
-/** Choose which of the three special-weapon slots receives a newly unlocked weapon. */
+/** The arsenal is full: choose which special weapon makes room for the one from the box. */
 public final class ReplaceScreen extends Screen {
     private static final int B_BACK = 1, B_ROW = 100;
     private final int newWeapon;
@@ -18,8 +18,8 @@ public final class ReplaceScreen extends Screen {
             game.pop();
         } else if (c >= B_ROW && c < B_ROW + Run.SPECIALS) {
             Run run = game.profile.run;
-            run.setSpecial(game.profile, c - B_ROW, newWeapon);
-            run.phase = Run.PHASE_MAP;
+            if (run.player.special(c - B_ROW) == null) return;
+            run.replaceSpecial(c - B_ROW, newWeapon);
             game.sound.sfx(Sound.S_LEVELUP);
             game.save();
             game.pop();
@@ -40,6 +40,7 @@ public final class ReplaceScreen extends Screen {
         Fighter f = game.profile.run.player;
         for (int s = 0; s < Run.SPECIALS; s++) {
             WeaponInst w = f.special(s);
+            if (w == null) continue;
             int id = B_ROW + s;
             boolean pr = ui.isPressed(id);
             int ry = y + (pr ? 1 : 0);
@@ -52,7 +53,7 @@ public final class ReplaceScreen extends Screen {
             ui.region(id, 6, y, W() - 12, 40);
             y += 46;
         }
-        Ui.paragraph(g, "Ausgerüstete Karten wandern mit auf die neue Waffe (soweit Plätze frei sind). Die alte Waffe bleibt in deiner Sammlung.",
+        Ui.paragraph(g, "Dein Arsenal ist voll (6 Waffen). Ausgerüstete Karten wandern mit auf die neue Waffe, soweit Plätze frei sind.",
                 10, y + 2, W() - 20, Pal.INK_SOFT);
         ui.button(g, B_BACK, 60, H() - 30, W() - 120, 24, "ZURÜCK", Ui.BTN_NORMAL);
     }

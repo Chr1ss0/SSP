@@ -25,6 +25,13 @@ public final class Enemies {
             Look.HAT_BEANIE, Look.HAT_BEANIE, Look.HAT_NONE, Look.HAT_CAP, Look.HAT_BEANIE, Look.HAT_NONE,
             Look.HAT_BAND, Look.HAT_WIZARD, Look.HAT_HELMET
     };
+    /** Preferred creature species / crest / extra per trainer class (-1 = random). */
+    private static final int[] CLASS_SPECIES = {-1, Look.BAER, Look.HASE, Look.DRACHE, Look.FUCHS, Look.KATZE, Look.VOGEL,
+            Look.BAER, Look.KATZE, Look.FROSCH, Look.FUCHS, -1, -1, Look.KATZE, Look.KNUDDEL, Look.DRACHE};
+    private static final int[] CLASS_CREST = {-1, Look.CREST_HORNS, Look.CREST_LEAF, Look.CREST_FLAME, Look.CREST_ANTENNA, -1, -1,
+            -1, Look.CREST_CRYSTAL, -1, -1, Look.CREST_HORNS, -1, -1, Look.CREST_GEM, Look.CREST_FLAME};
+    private static final int[] CLASS_EXTRA = {-1, -1, -1, -1, -1, Look.EX_BOW, Look.EX_GLASSES, Look.EX_SCARF, Look.EX_SCARF, -1, -1,
+            Look.EX_SCARF, Look.EX_SHADES, Look.EX_SHADES, -1, -1};
 
     private static final String[] NAMES = {
             "KEVIN", "JANA", "LUKAS", "MIA", "FINN", "LEA", "JONAS", "EMMA", "PAUL", "LINA", "BEN", "SOPHIE",
@@ -39,17 +46,19 @@ public final class Enemies {
     private static final String[] BOSS_NAME = {"KURT", "PIA", "VIKTOR", "FLORA", "FIONA", "FRANZ", "NORA", "KLAUS", "OSKAR", "SCHNUCK"};
     private static final int[] BOSS_TYPE = {STEIN, WASSER, BLITZ, PFLANZE, FEUER, EIS, STICH, KLINGE, PAPIER, -1};
     private static final Look[] BOSS_LOOK = {
-            new Look(1, 1, 2, 11, 10, Look.HAT_HELMET, 0),
-            new Look(3, 5, 1, 9, 1, Look.HAT_NONE, 0),
-            new Look(4, 2, 4, 3, 6, Look.HAT_NONE, 2),
-            new Look(2, 6, 3, 2, 10, Look.HAT_BAND, 0),
-            new Look(1, 3, 1, 0, 5, Look.HAT_NONE, 0),
-            new Look(0, 4, 0, 7, 9, Look.HAT_BEANIE, 0),
-            new Look(7, 7, 2, 8, 4, Look.HAT_NONE, 1),
-            new Look(5, 0, 5, 6, 11, Look.HAT_NONE, 3),
-            new Look(6, 4, 1, 7, 10, Look.HAT_WIZARD, 4),
-            new Look(2, 4, 3, 4, 6, Look.HAT_CROWN, 0),
+            new Look(Look.BAER, 11, 0, Look.PAT_NONE, 0, Look.CREST_HORNS, Look.TAIL_NORMAL, Look.HAT_HELMET, Look.EX_NONE),
+            new Look(Look.FROSCH, 1, 5, Look.PAT_SPOTS, 1, Look.CREST_NONE, Look.TAIL_NONE, Look.HAT_NONE, Look.EX_SCARF),
+            new Look(Look.FUCHS, 3, 1, Look.PAT_TIPS, 3, Look.CREST_ANTENNA, Look.TAIL_BOLT, Look.HAT_NONE, Look.EX_SHADES),
+            new Look(Look.HASE, 2, 4, Look.PAT_NONE, 2, Look.CREST_LEAF, Look.TAIL_LEAF, Look.HAT_BAND, Look.EX_NONE),
+            new Look(Look.DRACHE, 0, 2, Look.PAT_NONE, 5, Look.CREST_FLAME, Look.TAIL_FLAME, Look.HAT_NONE, Look.EX_NONE),
+            new Look(Look.KATZE, 9, 1, Look.PAT_STRIPES, 1, Look.CREST_CRYSTAL, Look.TAIL_NORMAL, Look.HAT_BEANIE, Look.EX_SCARF),
+            new Look(Look.VOGEL, 4, 6, Look.PAT_TIPS, 4, Look.CREST_NONE, Look.TAIL_NORMAL, Look.HAT_NONE, Look.EX_GLASSES),
+            new Look(Look.KATZE, 6, 1, Look.PAT_STRIPES, 5, Look.CREST_HORNS, Look.TAIL_NORMAL, Look.HAT_NONE, Look.EX_SHADES),
+            new Look(Look.KNUDDEL, 7, 0, Look.PAT_SPOTS, 0, Look.CREST_NONE, Look.TAIL_NONE, Look.HAT_WIZARD, Look.EX_GLASSES),
+            new Look(Look.DRACHE, 4, 2, Look.PAT_TIPS, 4, Look.CREST_GEM, Look.TAIL_NORMAL, Look.HAT_CROWN, Look.EX_SCARF),
     };
+    private static final String[] BOSS_CREATURE = {"FELSBÄR", "QUAPPO", "VOLTFUX", "BLATTI", "GLUTDRA", "EISKATZ", "STACHEL",
+            "SCHNEIDO", "BÜCHO", "MAJESTO"};
 
     public static boolean isBoss(int stage) {
         return stage % 5 == 0;
@@ -77,8 +86,11 @@ public final class Enemies {
         return BOSS_LOOK[arenaIndex(stage)];
     }
 
-    /** Deterministic enemy for a stage of a run. */
-    public static Fighter create(long runSeed, int stage) {
+    /**
+     * Deterministic enemy for a stage of a run. It carries as many weapons as
+     * the player: Stein, Schere, Papier plus {@code weaponCount - 3} specials.
+     */
+    public static Fighter create(long runSeed, int stage, int weaponCount) {
         Random r = new Random(runSeed * 31 + stage * 7919L);
         boolean boss = isBoss(stage);
         int arena = arenaIndex(stage);
@@ -86,8 +98,9 @@ public final class Enemies {
         int[] types;
         if (boss) {
             boolean champ = BOSS_TYPE[arena] < 0;
-            f = new Fighter(BOSS_NAME[arena], false, BOSS_LOOK[arena].copy());
+            f = new Fighter(BOSS_CREATURE[arena], false, BOSS_LOOK[arena].copy());
             f.title = champ ? "GROSSMEISTER" : "ARENALEITER";
+            f.trainer = BOSS_NAME[arena];
             if (champ) {
                 types = new int[]{STEIN, KLINGE, PAPIER, FEUER, WASSER, BLITZ, PFLANZE, STICH, EIS};
             } else {
@@ -108,14 +121,19 @@ public final class Enemies {
             }
             Look l = Look.random(r);
             l.hat = CLASS_HAT[cls] != Look.HAT_NONE && r.nextInt(3) > 0 ? CLASS_HAT[cls] : (r.nextInt(4) == 0 ? l.hat : Look.HAT_NONE);
-            f = new Fighter(NAMES[r.nextInt(NAMES.length)], false, l);
+            if (CLASS_SPECIES[cls] >= 0 && r.nextInt(3) > 0) l.species = CLASS_SPECIES[cls];
+            if (CLASS_CREST[cls] >= 0 && r.nextInt(3) > 0) l.crest = CLASS_CREST[cls];
+            if (CLASS_EXTRA[cls] >= 0 && r.nextInt(2) == 0) l.extra = CLASS_EXTRA[cls];
+            String trainer = NAMES[r.nextInt(NAMES.length)];
+            f = new Fighter(Look.creatureName(l.species, r), false, l);
             f.title = CLASS_NAME[cls].toUpperCase(java.util.Locale.GERMAN);
+            f.trainer = trainer;
             types = CLASS_TYPES[cls];
         }
 
-        // same structure as the player: Stein, Schere, Papier + 3 specials
+        // same structure as the player: Stein, Schere, Papier + the same number of specials
         for (int id : WeaponDef.CLASSICS) addWeapon(f, id);
-        int count = Run.MAX_WEAPONS;
+        int count = Math.max(3, Math.min(Run.MAX_WEAPONS, weaponCount));
         int maxRarity = stage < 4 ? 0 : (stage < 10 ? 1 : (stage < 20 ? 2 : 3));
         if (boss) maxRarity = Math.min(3, maxRarity + 1);
 
@@ -125,7 +143,7 @@ public final class Enemies {
             pool.add(d.id);
         }
         // boss cover weapon: something that beats the counters of the main type
-        if (boss && types.length == 1) {
+        if (boss && types.length == 1 && count > 4) {
             int[] counters = Element.losesList(types[0]);
             int cover = counters[r.nextInt(counters.length)];
             int[] coverTypes = Element.losesList(cover);
@@ -148,7 +166,7 @@ public final class Enemies {
         }
 
         // bonus cards
-        int cards = Math.max(0, (stage - 1) / 3) + (boss ? 1 : 0);
+        int cards = f.weapons.size() > 3 ? Math.max(0, (stage - 1) / 3) + (boss ? 1 : 0) : 0;
         for (int i = 0; i < cards; i++) {
             BonusDef b = Cards.randomCard(r, Math.min(2, stage / 12));
             if (b.effects[0].isPassive() && b.effects[0].kind != Effect.MAXHP && b.effects[0].kind != Effect.REGEN) continue;
@@ -164,7 +182,8 @@ public final class Enemies {
         f.maxHp = 0;
         f.recalcMaxHp();
         f.hp = f.maxHp;
-        f.dmgPct = Math.min(400, 100 + 4 * (stage - 1));
+        // gentle start (the run begins with Stein, Schere, Papier only), then steadily harder
+        f.dmgPct = Math.min(400, 75 + 5 * (stage - 1));
         return f;
     }
 

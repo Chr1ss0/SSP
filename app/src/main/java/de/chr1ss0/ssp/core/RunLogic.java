@@ -18,24 +18,32 @@ public final class RunLogic {
     }
 
     /**
-     * Rolls the weapon inside a box: a still locked special weapon (rarity by
-     * box tier), or -1 if every weapon is unlocked already.
+     * Rolls the weapon inside a box: a special weapon that is not in the
+     * arsenal yet, rarity by box tier. Weapons never found before are a bit
+     * more likely so the collection keeps growing.
      */
     public static int rollBoxWeapon(Profile p, Random r, int tier) {
-        if (p.lockedCount() == 0) return -1;
-        for (int attempt = 0; attempt < 60; attempt++) {
+        Fighter pl = p.run != null ? p.run.player : null;
+        for (int attempt = 0; attempt < 80; attempt++) {
             int rarity = Cards.rollRarity(r, Cards.boxWeights(tier));
+            boolean onlyNew = attempt < 40 && r.nextInt(100) < 35;
             int count = 0;
-            for (WeaponDef d : WeaponDef.ALL) if (d.rarity == rarity && !d.isClassic() && !p.owned[d.id]) count++;
+            for (WeaponDef d : WeaponDef.ALL) if (boxCandidate(d, rarity, onlyNew, p, pl)) count++;
             if (count == 0) continue;
             int pick = r.nextInt(count);
             for (WeaponDef d : WeaponDef.ALL) {
-                if (d.rarity != rarity || d.isClassic() || p.owned[d.id]) continue;
+                if (!boxCandidate(d, rarity, onlyNew, p, pl)) continue;
                 if (pick-- == 0) return d.id;
             }
         }
-        for (WeaponDef d : WeaponDef.ALL) if (!d.isClassic() && !p.owned[d.id]) return d.id;
+        for (WeaponDef d : WeaponDef.ALL) if (!d.isClassic() && (pl == null || !pl.hasWeapon(d.id))) return d.id;
         return -1;
+    }
+
+    private static boolean boxCandidate(WeaponDef d, int rarity, boolean onlyNew, Profile p, Fighter pl) {
+        if (d.isClassic() || d.rarity != rarity) return false;
+        if (pl != null && pl.hasWeapon(d.id)) return false;
+        return !onlyNew || !p.owned[d.id];
     }
 
     /** Applies a victory: stats, level up, healing and the reward box. Returns HP healed. */

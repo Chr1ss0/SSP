@@ -1,10 +1,10 @@
 package de.chr1ss0.ssp.core;
 
-/** Character editor: name, hair, colours, headwear, extras. */
+/** Creature editor: name, species, colours, pattern, eyes, crest, tail, hat, extras. */
 public final class EditorScreen extends Screen {
     private static final int B_NAME = 1, B_RANDOM = 2, B_DONE = 3, B_PREVIEW = 4;
     private static final int B_PREV = 100, B_NEXT = 200;
-    private static final String[] LABELS = {"Frisur", "Haarfarbe", "Augen", "Hautton", "Oberteil", "Farbe", "Hose", "Kopf", "Extra"};
+    private static final String[] LABELS = {"Art", "Farbe", "Bauch", "Muster", "Augen", "Kopfschmuck", "Schwanz", "Hut", "Extra"};
     private static final int[] PREVIEW = {WeaponDef.SCHERE_ID, WeaponDef.STEIN_ID, WeaponDef.PAPIER_ID};
 
     private final boolean firstTime;
@@ -26,12 +26,13 @@ public final class EditorScreen extends Screen {
 
     private int count(int row) {
         switch (row) {
-            case 0: return Look.HAIR_NAMES.length;
-            case 1: return Look.HAIR_COLORS.length;
-            case 2: return Look.EYE_COLORS.length;
-            case 3: return Look.SKIN.length;
-            case 4: return Look.TOP_NAMES.length;
-            case 5: case 6: return Look.CLOTH.length;
+            case 0: return Look.SPECIES_NAMES.length;
+            case 1: return Look.COLORS.length;
+            case 2: return Look.BELLY.length;
+            case 3: return Look.PATTERN_NAMES.length;
+            case 4: return Look.EYE_COLORS.length;
+            case 5: return Look.CREST_NAMES.length;
+            case 6: return Look.TAIL_NAMES.length;
             case 7: return Look.HAT_NAMES.length;
             default: return Look.EXTRA_NAMES.length;
         }
@@ -39,13 +40,13 @@ public final class EditorScreen extends Screen {
 
     private int get(int row) {
         switch (row) {
-            case 0: return look.hair;
-            case 1: return look.hairColor;
-            case 2: return look.eyes;
-            case 3: return look.skin;
-            case 4: return look.top;
-            case 5: return look.shirt;
-            case 6: return look.pants;
+            case 0: return look.species;
+            case 1: return look.color;
+            case 2: return look.belly;
+            case 3: return look.pattern;
+            case 4: return look.eyes;
+            case 5: return look.crest;
+            case 6: return look.tail;
             case 7: return look.hat;
             default: return look.extra;
         }
@@ -55,13 +56,13 @@ public final class EditorScreen extends Screen {
         int n = count(row);
         v = ((v % n) + n) % n;
         switch (row) {
-            case 0: look.hair = v; break;
-            case 1: look.hairColor = v; break;
-            case 2: look.eyes = v; break;
-            case 3: look.skin = v; break;
-            case 4: look.top = v; break;
-            case 5: look.shirt = v; break;
-            case 6: look.pants = v; break;
+            case 0: look.species = v; break;
+            case 1: look.color = v; break;
+            case 2: look.belly = v; break;
+            case 3: look.pattern = v; break;
+            case 4: look.eyes = v; break;
+            case 5: look.crest = v; break;
+            case 6: look.tail = v; break;
             case 7: look.hat = v; break;
             default: look.extra = v; break;
         }
@@ -70,12 +71,13 @@ public final class EditorScreen extends Screen {
     private String valueName(int row) {
         int v = get(row);
         switch (row) {
-            case 0: return Look.HAIR_NAMES[v];
-            case 1: return Look.HAIR_COLOR_NAMES[v];
-            case 2: return Look.EYE_NAMES[v];
-            case 3: return Look.SKIN_NAMES[v];
-            case 4: return Look.TOP_NAMES[v];
-            case 5: case 6: return Look.CLOTH_NAMES[v];
+            case 0: return Look.SPECIES_NAMES[v];
+            case 1: return Look.COLOR_NAMES[v];
+            case 2: return Look.BELLY_NAMES[v];
+            case 3: return Look.PATTERN_NAMES[v];
+            case 4: return Look.EYE_NAMES[v];
+            case 5: return Look.CREST_NAMES[v];
+            case 6: return Look.TAIL_NAMES[v];
             case 7: return Look.HAT_NAMES[v];
             default: return Look.EXTRA_NAMES[v];
         }
@@ -84,10 +86,9 @@ public final class EditorScreen extends Screen {
     private int swatch(int row) {
         int v = get(row);
         switch (row) {
-            case 1: return Look.HAIR_COLORS[v];
-            case 2: return Look.EYE_COLORS[v];
-            case 3: return Look.SKIN[v];
-            case 5: case 6: return Look.CLOTH[v];
+            case 1: return Look.COLORS[v];
+            case 2: return Look.BELLY[v];
+            case 4: return Look.EYE_COLORS[v];
             default: return 0;
         }
     }
@@ -110,9 +111,7 @@ public final class EditorScreen extends Screen {
             game.push(new NameScreen(game, this));
         } else if (c == B_RANDOM) {
             game.sound.sfx(Sound.S_SELECT);
-            Look r = Look.random(game.rng);
-            look.hair = r.hair; look.hairColor = r.hairColor; look.skin = r.skin; look.shirt = r.shirt;
-            look.pants = r.pants; look.hat = r.hat; look.extra = r.extra; look.eyes = r.eyes; look.top = r.top;
+            look.set(Look.random(game.rng));
         } else if (c == B_DONE) {
             game.sound.sfx(Sound.S_LEVELUP);
             Profile p = game.profile;
@@ -129,7 +128,7 @@ public final class EditorScreen extends Screen {
     @Override
     public void render(Gfx g) {
         Ui.background(g);
-        Ui.header(g, firstTime ? "ERSTELLE DEINEN HELDEN" : "CHARAKTER", W());
+        Ui.header(g, firstTime ? "ERSTELLE DEIN MONSTER" : "DEIN MONSTER", W());
         int extra = Math.max(0, H() - 380);
         int py = 24 + extra / 5;
         // preview stage

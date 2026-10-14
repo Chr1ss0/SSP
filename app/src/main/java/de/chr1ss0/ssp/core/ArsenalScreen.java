@@ -1,16 +1,14 @@
 package de.chr1ss0.ssp.core;
 
 /**
- * The run's arsenal: Stein, Schere, Papier (fixed, unlimited) plus three
- * special weapons chosen from the unlocked collection, which carry the cards.
+ * The run's arsenal: Stein, Schere, Papier (fixed, unlimited) plus up to three
+ * special weapons from loot boxes, which carry the bonus cards.
  */
 public final class ArsenalScreen extends Screen {
     private static final int B_BACK = 1, B_AUTO = 2, B_CLEAR = 3, B_CLASSIC = 50, B_SPECIAL = 100;
-    private final boolean prep;
 
     public ArsenalScreen(Game game, boolean prep) {
         super(game);
-        this.prep = prep;
     }
 
     private boolean locked() {
@@ -28,7 +26,7 @@ public final class ArsenalScreen extends Screen {
         final Fighter f = p.run.player;
         int c = ui.click();
         if (c == B_BACK) {
-            game.sound.sfx(prep ? Sound.S_SELECT : Sound.S_BACK);
+            game.sound.sfx(Sound.S_BACK);
             game.save();
             game.pop();
         } else if (c == B_AUTO && !locked()) {
@@ -39,12 +37,12 @@ public final class ArsenalScreen extends Screen {
             game.sound.sfx(Sound.S_BACK);
             RunLogic.unequipAll(f);
             game.save();
-        } else if (c >= B_SPECIAL && c < B_SPECIAL + Run.SPECIALS) {
+        } else if (c >= B_SPECIAL && c < B_SPECIAL + Run.SPECIALS && f.special(c - B_SPECIAL) != null) {
             game.sound.sfx(Sound.S_SELECT);
-            game.push(new WeaponScreen(game, f.special(c - B_SPECIAL), -1, c - B_SPECIAL, !locked()));
+            game.push(new WeaponScreen(game, f.special(c - B_SPECIAL), -1, !locked()));
         } else if (c >= B_CLASSIC && c < B_CLASSIC + 3) {
             game.sound.sfx(Sound.S_SELECT);
-            game.push(new WeaponScreen(game, f.weapons.get(c - B_CLASSIC), -1, -1, false));
+            game.push(new WeaponScreen(game, f.weapons.get(c - B_CLASSIC), -1, false));
         }
     }
 
@@ -54,12 +52,8 @@ public final class ArsenalScreen extends Screen {
         Profile p = game.profile;
         if (p.run == null) return;
         Fighter f = p.run.player;
-        Ui.header(g, prep ? "NEUER LAUF: ARSENAL" : "ARSENAL", W());
+        Ui.header(g, "ARSENAL  " + f.weapons.size() + "/" + Run.MAX_WEAPONS, W());
         int y = 24;
-        if (prep) {
-            y += Ui.paragraph(g, "Deine Karten bleiben dir! Verteile sie neu auf deine Spezialwaffen.", 8, y, W() - 16, Pal.INK);
-            y += 2;
-        }
         int free = 0;
         for (int i = 0; i < p.cards.length; i++) free += Math.max(0, p.available(i));
         g.text(Font.HEART + " " + f.hp + " / " + f.maxHp + " KP", 8, y, Pal.INK);
@@ -78,19 +72,29 @@ public final class ArsenalScreen extends Screen {
             Ui.panel(g, x, y + (pr ? 1 : 0), cw, 30, pr ? Pal.SELECT : Pal.WHITE, Pal.INK);
             Ui.weaponTile(g, w.def.id, x + 4, y + 5 + (pr ? 1 : 0), true);
             g.text(w.def.name, x + 27, y + 6 + (pr ? 1 : 0), Pal.INK);
-            g.text(Font.SWORD + "" + w.stats().atk + "  ∞", x + 27, y + 17 + (pr ? 1 : 0), Pal.INK_SOFT);
+            g.text(Font.SWORD + "" + w.stats().atk + "  \u221E", x + 27, y + 17 + (pr ? 1 : 0), Pal.INK_SOFT);
             ui.region(id, x, y, cw, 30);
         }
         y += 38;
 
         // ---- specials
-        g.text("SPEZIALWAFFEN " + Font.DOT + " JE 1× PRO GEGNER", 8, y, Pal.ACCENT);
+        g.text("SPEZIALWAFFEN " + Font.DOT + " JE 1\u00D7 PRO GEGNER", 8, y, Pal.ACCENT);
         y += 11;
         int avail = H() - y - 66;
         int rowH = Math.max(42, Math.min(54, avail / Run.SPECIALS));
         for (int s = 0; s < Run.SPECIALS; s++) {
             WeaponInst w = f.special(s);
             int id = B_SPECIAL + s;
+            if (w == null) {
+                g.roundRect(6, y, W() - 12, rowH - 4, 8, 0x80FFFFFF);
+                g.roundBorder(6, y, W() - 12, rowH - 4, 8, 1, 0xFFC9CDE0);
+                Ui.emptySlot(g, 11, y + (rowH - 4 - 26) / 2, 26);
+                int ty = y + (rowH - 4) / 2 - 10;
+                g.text("Freier Platz", 42, ty, Pal.GRAY);
+                g.text("Gewinne Kisten für neue Waffen!", 42, ty + 11, Pal.GRAY);
+                y += rowH;
+                continue;
+            }
             boolean pr = ui.isPressed(id);
             int ry = y + (pr ? 1 : 0);
             Ui.panel(g, 6, ry, W() - 12, rowH - 4, pr ? Pal.SELECT : Pal.WHITE, 0xFFB9A9FF);
@@ -114,9 +118,9 @@ public final class ArsenalScreen extends Screen {
         }
         int by = H() - 58;
         int half = (W() - 18) / 2;
-        int st = locked() ? Ui.BTN_DISABLED : Ui.BTN_NORMAL;
+        int st = locked() || f.special(0) == null ? Ui.BTN_DISABLED : Ui.BTN_NORMAL;
         ui.button(g, B_AUTO, 6, by, half, 24, "AUTO-VERTEILEN", st);
         ui.button(g, B_CLEAR, 12 + half, by, half, 24, "ALLE ABLEGEN", st);
-        ui.button(g, B_BACK, 6, by + 28, W() - 12, 26, prep ? "LOS GEHT'S!" : "ZURÜCK", prep ? Ui.BTN_PRIMARY : Ui.BTN_NORMAL);
+        ui.button(g, B_BACK, 6, by + 28, W() - 12, 26, "ZURÜCK", Ui.BTN_NORMAL);
     }
 }

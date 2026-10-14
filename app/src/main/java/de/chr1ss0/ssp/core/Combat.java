@@ -279,18 +279,25 @@ public final class Combat {
     /** Expected outcome score of weapon w against an arsenal (for hints): wins, draws, losses. */
     public static int[] matchup(WeaponInst mine, List<WeaponInst> theirs) {
         int win = 0, draw = 0, lose = 0;
-        Stats ms = mine.stats();
         for (WeaponInst t : theirs) {
-            Stats ts = t.stats();
-            int a = mine.def.type, b = t.def.type;
-            boolean pb = Element.beats(a, b) || (ms.breaks & (1 << b)) != 0;
-            boolean eb = Element.beats(b, a) || (ts.breaks & (1 << a)) != 0;
-            if (pb && (ts.immune & (1 << a)) != 0 && !ms.antiImmune) pb = false;
-            if (eb && (ms.immune & (1 << b)) != 0 && !ts.antiImmune) eb = false;
-            if (pb && !eb) win++;
-            else if (eb && !pb) lose++;
+            int o = outcome(mine, t);
+            if (o == WIN) win++;
+            else if (o == LOSE) lose++;
             else draw++;
         }
         return new int[]{win, draw, lose};
+    }
+
+    /** Type outcome of one weapon against another, including breaker and immunity cards. */
+    public static int outcome(WeaponInst mine, WeaponInst theirs) {
+        Stats ms = mine.stats(), ts = theirs.stats();
+        int a = mine.def.type, b = theirs.def.type;
+        boolean pb = Element.beats(a, b) || (ms.breaks & (1 << b)) != 0;
+        boolean eb = Element.beats(b, a) || (ts.breaks & (1 << a)) != 0;
+        if (pb && (ts.immune & (1 << a)) != 0 && !ms.antiImmune) pb = false;
+        if (eb && (ms.immune & (1 << b)) != 0 && !ts.antiImmune) eb = false;
+        if (pb && !eb) return WIN;
+        if (eb && !pb) return LOSE;
+        return DRAW;
     }
 }

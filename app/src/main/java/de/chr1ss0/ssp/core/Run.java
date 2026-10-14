@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Random;
 
 /**
- * State of the current roguelike run. The player's arsenal is always
- * Stein, Schere, Papier (fixed) plus three chosen special weapons.
+ * State of the current roguelike run. The arsenal starts with Stein, Schere
+ * and Papier; every loot box can add a special weapon, up to six weapons.
  */
 public final class Run {
     public static final int PHASE_MAP = 0, PHASE_BATTLE = 1, PHASE_REWARD = 2;
@@ -31,7 +31,7 @@ public final class Run {
         Run run = new Run();
         run.seed = r.nextLong();
         run.player = new Fighter(p.name, true, p.look);
-        buildArsenal(run.player, p.loadout);
+        buildArsenal(run.player);
         run.player.baseMaxHp = BASE_HP;
         run.player.maxHp = 0;
         run.player.recalcMaxHp();
@@ -40,15 +40,15 @@ public final class Run {
         return run;
     }
 
-    /** Fills a fighter's arsenal: classics + the given special weapons. */
-    static void buildArsenal(Fighter f, int[] specials) {
+    /** Starting arsenal: Stein, Schere, Papier. */
+    static void buildArsenal(Fighter f) {
         f.weapons.clear();
         for (int id : WeaponDef.CLASSICS) f.weapons.add(new WeaponInst(id));
-        for (int id : specials) f.weapons.add(new WeaponInst(id));
     }
 
+    /** The next opponent; it always has as many weapons as the player. */
     public Fighter createEnemy() {
-        Fighter e = Enemies.create(seed, stage);
+        Fighter e = Enemies.create(seed, stage, player.weapons.size());
         if (enemyHp > 0) e.hp = Math.min(e.maxHp, enemyHp);
         return e;
     }
@@ -65,10 +65,22 @@ public final class Run {
         return Math.min(400, 100 + 3 * (stage - 1));
     }
 
-    /** Replaces the special weapon in a slot; compatible cards move over to the new weapon. */
-    public void setSpecial(Profile p, int slot, int weaponId) {
+    public boolean arsenalFull() {
+        return player.weapons.size() >= MAX_WEAPONS;
+    }
+
+    /** Adds a special weapon from a box (if there is room). */
+    public boolean addWeapon(int weaponId) {
+        if (arsenalFull() || player.hasWeapon(weaponId) || WeaponDef.get(weaponId).isClassic()) return false;
+        player.weapons.add(new WeaponInst(weaponId));
+        player.recalcMaxHp();
+        return true;
+    }
+
+    /** Replaces the special weapon in a slot; its cards move over to the new weapon where slots allow. */
+    public void replaceSpecial(int slot, int weaponId) {
         int idx = player.specialIndex(slot);
-        if (idx < 0) return;
+        if (idx < 0 || player.hasWeapon(weaponId)) return;
         WeaponInst old = player.weapons.get(idx);
         WeaponInst nw = new WeaponInst(weaponId);
         int k = 0;
@@ -76,7 +88,6 @@ public final class Run {
             if (s >= 0 && k < nw.slots.length) nw.slots[k++] = s;
         }
         player.weapons.set(idx, nw);
-        p.loadout[slot] = weaponId;
         player.recalcMaxHp();
     }
 
@@ -110,19 +121,14 @@ public final class Run {
             run.stage = Math.max(1, Integer.parseInt(a[1]));
             run.phase = Integer.parseInt(a[2]);
             run.player = new Fighter(p.name, true, p.look);
-            buildArsenal(run.player, p.loadout);
-            // restore specials (and their cards) from the save; old saves may hold any weapons
-            int slot = 0;
+            buildArsenal(run.player);
+            // restore the special weapons (and their cards); old saves may hold any weapons
             for (String w : ws.split(";")) {
                 WeaponInst wi = WeaponInst.decode(w);
-                if (wi == null || wi.isClassic() || slot >= SPECIALS) continue;
-                boolean dup = false;
-                for (int i = 0; i < slot; i++) if (run.player.special(i).def.id == wi.def.id) dup = true;
-                if (dup) continue;
-                run.player.weapons.set(run.player.specialIndex(slot), wi);
-                p.loadout[slot] = wi.def.id;
+                if (wi == null || wi.isClassic() || run.arsenalFull() || run.player.hasWeapon(wi.def.id)) continue;
+                run.player.weapons.add(wi);
                 p.owned[wi.def.id] = true;
-                slot++;
+                p.seen[wi.def.id] = true;
             }
             run.player.baseMaxHp = Integer.parseInt(a[4]);
             run.player.maxHp = 0;

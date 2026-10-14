@@ -1,6 +1,6 @@
 package de.chr1ss0.ssp.core;
 
-/** Choose a slot of one of the three special weapons for a specific card. */
+/** Choose a slot of one of the special weapons for a specific card. */
 public final class EquipScreen extends Screen {
     private static final int B_BACK = 1, B_SLOT = 100;
     private final BonusDef card;
@@ -66,7 +66,8 @@ public final class EquipScreen extends Screen {
             }
             y += rowH;
         }
-        g.text("Belegte Plätze werden ersetzt.", 8, y + 2, Pal.INK_SOFT);
+        if (f.special(0) == null) Ui.paragraph(g, "Du hast noch keine Spezialwaffe. Neue Waffen gibt es in den Kisten nach jedem Sieg.", 8, y + 2, W() - 16, Pal.INK_SOFT);
+        else g.text("Belegte Plätze werden ersetzt.", 8, y + 2, Pal.INK_SOFT);
         ui.button(g, B_BACK, 60, H() - 30, W() - 120, 24, "ZURÜCK", Ui.BTN_NORMAL);
     }
 }

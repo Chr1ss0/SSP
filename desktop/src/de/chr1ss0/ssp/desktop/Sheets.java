@@ -56,13 +56,12 @@ public final class Sheets {
         for (int i = 0; i < 8; i++) Ui.cardMini(b, BonusDef.get(i * 12), 4 + i * 14, 268);
         Png.write(b, 2, out + "/bonus.png");
 
-        // characters: front + back for hair styles, hats, extras, tops
+        // creatures: every species (front + back) with varied colours, crests, tails, hats and extras
         Gfx c = new Gfx(4 * 100 + 4, 4 * 196 + 4, K);
         Ui.background(c);
         for (int i = 0; i < 16; i++) {
-            Look l = new Look(i % 8, i % Look.HAIR_COLORS.length, i % 6, (i * 5) % 12, (i * 7 + 3) % 12, i < 8 ? (i % 7) : 0, i >= 8 ? (i % 5) : 0);
-            l.eyes = i % 6;
-            l.top = i % 3;
+            Look l = new Look(i % 8, (i * 5) % Look.COLORS.length, i % Look.BELLY.length, (i / 2) % 4, i % 6,
+                    i < 8 ? 0 : (i % 7), i < 8 ? 0 : (i % 6), i < 8 ? (i % 2 == 0 ? 0 : i % 7) : (i % 7), i % 5);
             int x = 4 + (i % 4) * 100, y = 4 + (i / 4) * 196;
             c.sprite(CharArt.front(l, i * 3), x, y, 1);
             c.sprite(CharArt.back(l, i * 3), x, y + 100, 1);

@@ -51,9 +51,9 @@ public final class Play {
                         int best = 1;
                         double bestScore = -1e9;
                         Fighter me = run.player;
-                        Fighter e = Enemies.create(run.seed, run.stage);
+                        Fighter e = run.createEnemy();
                         for (int i = 0; i < me.weapons.size(); i++) {
-                            if (game.ui.find(i + 1) == null) continue; // used special
+                            if (!me.weapons.get(i).available()) continue; // used special
                             int[] m = Combat.matchup(me.weapons.get(i), e.weapons);
                             double s = m[0] * (1 + me.weapons.get(i).stats().atk / 10.0) - m[2] + Math.random() * 0.2;
                             if (s > bestScore) { bestScore = s; best = i + 1; }
@@ -73,23 +73,18 @@ public final class Play {
                     break;
                 }
                 case "RewardScreen":
-                    Shots.step(1000);
-                    // equip the first card if possible, then open the box
-                    if (game.ui.find(10) != null) {
-                        Shots.tap(10);
-                        Shots.step(300);
-                        if (Shots.top().equals("EquipScreen")) {
-                            Shots.tap(100 + 3 * 10);
-                            Shots.step(300);
-                        }
+                    Shots.step(600);
+                    if (game.ui.find(1) != null) { // closed box
+                        Shots.tap(1);
+                        Shots.step(2300);
+                    } else if (game.ui.find(2) != null) { // weapon shown: into the arsenal
+                        Shots.tap(2);
+                        Shots.step(800);
+                    } else if (game.ui.find(4) != null) { // cards: auto-equip, continue
+                        if (game.ui.find(5) != null) Shots.tap(5);
+                        Shots.tap(4);
+                        Shots.step(400);
                     }
-                    Shots.tap(4);
-                    Shots.step(300);
-                    Shots.tap(1);
-                    Shots.step(2300);
-                    if (game.ui.find(2) != null) Shots.tap(2); // into arsenal
-                    else Shots.tap(3);
-                    Shots.step(400);
                     break;
                 case "EquipScreen":
                     Shots.tap(100 + 3 * 10);

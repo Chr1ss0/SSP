@@ -781,12 +781,24 @@ public final class WeaponArt {
 
     private static final Sprite[] SMALL = new Sprite[ART.length];
 
+    private static final Sprite[] MID = new Sprite[ART.length];
+
     /** 22x22 downscaled icon for tiny tiles. */
     public static Sprite iconSmall(int weaponId) {
         Sprite s = SMALL[weaponId];
         if (s == null) {
             s = Shade.downscale(icon(weaponId), 22, 22);
             SMALL[weaponId] = s;
+        }
+        return s;
+    }
+
+    /** 28x28 downscaled icon (14 logical pixels). */
+    public static Sprite iconMid(int weaponId) {
+        Sprite s = MID[weaponId];
+        if (s == null) {
+            s = Shade.downscale(icon(weaponId), 28, 28);
+            MID[weaponId] = s;
         }
         return s;
     }

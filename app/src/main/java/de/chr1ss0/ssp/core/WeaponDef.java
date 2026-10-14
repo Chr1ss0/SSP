@@ -39,7 +39,6 @@ public final class WeaponDef {
     public static final int STEIN_ID = 0, SCHERE_ID = 6, PAPIER_ID = 12;
     public static final int[] CLASSICS = {STEIN_ID, SCHERE_ID, PAPIER_ID};
     /** Special weapons every player starts with (Fackel, Wasserpistole, Bambus). */
-    public static final int[] STARTERS = {19, 24, 35};
 
     public static final WeaponDef[] ALL;
 

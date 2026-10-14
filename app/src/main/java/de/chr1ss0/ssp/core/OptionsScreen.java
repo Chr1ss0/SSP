@@ -47,7 +47,7 @@ public final class OptionsScreen extends Screen {
             game.sound.sfx(Sound.S_CURSOR);
         } else if (c == B_RESET) {
             game.sound.sfx(Sound.S_ERROR);
-            game.dialog("Wirklich ALLES löschen? Charakter, Karten, Waffendex und Lauf gehen verloren!",
+            game.dialog("Wirklich ALLES löschen? Monster, Karten, Waffendex und Lauf gehen verloren!",
                     new String[]{"LÖSCHEN", "ABBRECHEN"}, new Game.Choice() {
                         @Override
                         public void chosen(int index) {

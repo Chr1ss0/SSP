@@ -1,31 +1,27 @@
 package de.chr1ss0.ssp.core;
 
 /**
- * Weapon details: stats, matchups and (for the three special weapons) the
- * bonus card slots plus swapping the weapon. Dex entries are read-only.
+ * Weapon details: stats, matchups and the bonus cards of a special weapon
+ * (editable from the arsenal). Dex entries and battle look-ups are read-only.
  */
 public final class WeaponScreen extends Screen {
-    private static final int B_BACK = 1, B_SWAP = 2, B_SLOT = 10;
+    private static final int B_BACK = 1, B_SLOT = 10;
     private final WeaponInst inst;
     private final WeaponDef def;
-    private final int specialSlot;
     private final boolean editable;
 
     public WeaponScreen(Game game, WeaponInst inst, int dexId) {
-        this(game, inst, dexId, -1, false);
+        this(game, inst, dexId, false);
     }
 
-    public WeaponScreen(Game game, WeaponInst inst, int dexId, int specialSlot, boolean editable) {
+    public WeaponScreen(Game game, WeaponInst inst, int dexId, boolean editable) {
         super(game);
         this.inst = inst;
         this.def = inst != null ? inst.def : WeaponDef.get(dexId);
-        this.specialSlot = specialSlot;
-        this.editable = editable;
+        this.editable = editable && inst != null && !inst.isClassic();
     }
 
-    /** The instance currently in the slot (it changes after a swap). */
     private WeaponInst current() {
-        if (specialSlot >= 0 && game.profile.run != null) return game.profile.run.player.special(specialSlot);
         return inst;
     }
 
@@ -36,9 +32,6 @@ public final class WeaponScreen extends Screen {
         if (c == B_BACK) {
             game.sound.sfx(Sound.S_BACK);
             game.pop();
-        } else if (c == B_SWAP && editable && specialSlot >= 0) {
-            game.sound.sfx(Sound.S_SELECT);
-            game.push(new WeaponPickScreen(game, specialSlot));
         } else if (editable && w != null && c >= B_SLOT && c < B_SLOT + w.slots.length) {
             game.sound.sfx(Sound.S_SELECT);
             game.push(new CardPickScreen(game, w, c - B_SLOT));
@@ -80,7 +73,7 @@ public final class WeaponScreen extends Screen {
             y += 4;
             Ui.paragraph(g, "Stein, Schere und Papier sind fest in deinem Arsenal und unbegrenzt einsetzbar. Bonuskarten tragen nur deine drei Spezialwaffen.",
                     8, y, W() - 16, Pal.INK_SOFT);
-        } else if (w != null && specialSlot >= 0) {
+        } else if (w != null) {
             y += 2;
             g.text(editable ? "BONUSKARTEN (tippen zum Ändern):" : "BONUSKARTEN:", 8, y, Pal.INK);
             y += 11;
@@ -104,7 +97,7 @@ public final class WeaponScreen extends Screen {
                 if (editable) ui.region(id, 6, y, W() - 12, rowH - 3);
                 y += rowH;
             }
-            if (editable) ui.button(g, B_SWAP, 30, H() - 58, W() - 60, 24, "WAFFE TAUSCHEN", Ui.BTN_PRIMARY);
+            if (w.slots.length == 0) g.text("Keine Kartenplätze.", 8, y, Pal.GRAY);
         }
         ui.button(g, B_BACK, 60, H() - 28, W() - 120, 24, "ZURÜCK", Ui.BTN_NORMAL);
     }

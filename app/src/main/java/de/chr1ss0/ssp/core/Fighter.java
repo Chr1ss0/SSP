@@ -5,7 +5,8 @@ import java.util.ArrayList;
 /** Player or enemy in a battle. */
 public final class Fighter {
     public String name;
-    public String title = "";
+    /** Trainer of an opponent's creature: class (e.g. "SCHÜLER") and name. */
+    public String title = "", trainer = "";
     public final boolean isPlayer;
     public Look look;
     public int hp, baseMaxHp, maxHp;
@@ -24,7 +25,9 @@ public final class Fighter {
         this.look = look;
     }
 
+    /** The trainer's full name (e.g. "SCHÜLER PAUL"), or the creature's name without a trainer. */
     public String fullName() {
+        if (trainer.length() > 0) return title.length() > 0 ? title + " " + trainer : trainer;
         return title.length() > 0 ? title + " " + name : name;
     }
 
@@ -87,6 +90,12 @@ public final class Fighter {
             if (n++ == slot) return w;
         }
         return null;
+    }
+
+    /** Weapon shown in the character's hand outside of battles (first special, else Schere). */
+    public int showcaseWeapon() {
+        WeaponInst w = special(0);
+        return w != null ? w.def.id : WeaponDef.SCHERE_ID;
     }
 
     public int specialIndex(int slot) {

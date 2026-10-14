@@ -11,6 +11,8 @@ import java.util.List;
  */
 public final class Ui {
     private static final int DRAG_THRESHOLD = 5;
+    /** Hold time for a long press in ms. */
+    public static final float LONG_MS = 420;
 
     private static final class Region {
         int id, x, y, w, h;
@@ -32,6 +34,9 @@ public final class Ui {
 
     private int pressed = -1;
     private int clicked = -1;
+    private int longPressed = -1;
+    private float downMs;
+    private boolean longFired;
     private boolean down, dragging;
     private int downX, downY, lastY;
     private int activeScroll = -1;
@@ -60,6 +65,7 @@ public final class Ui {
     public void reset() {
         pressed = -1;
         clicked = -1;
+        longPressed = -1;
         down = false;
         dragging = false;
         activeScroll = -1;
@@ -81,6 +87,8 @@ public final class Ui {
         touchX = x; touchY = y;
         Region r = hit(x, y);
         pressed = r != null ? r.id : -1;
+        downMs = 0;
+        longFired = false;
         activeScroll = -1;
         if (r != null && r.scrollId >= 0) activeScroll = r.scrollId;
         if (activeScroll < 0) {
@@ -126,6 +134,18 @@ public final class Ui {
         dragging = false;
     }
 
+    /** Returns and consumes the id held down for {@link #LONG_MS} (-1 if none); that press then gives no click. */
+    public int longPress() {
+        int c = longPressed;
+        longPressed = -1;
+        return c;
+    }
+
+    /** 0..1 progress of a press that may become a long press on the region. */
+    public float holdProgress(int id) {
+        return active && down && pressed == id && !dragging ? Math.min(1f, downMs / LONG_MS) : 0f;
+    }
+
     /** Returns and consumes the id clicked since last call (-1 if none). */
     public int click() {
         int c = clicked;
@@ -142,6 +162,17 @@ public final class Ui {
     }
 
     public void update(float dt) {
+        if (down && !dragging && pressed >= 0 && !longFired) {
+            Region r = hit(touchX, touchY);
+            if (r != null && r.id == pressed) {
+                downMs += dt;
+                if (downMs >= LONG_MS) {
+                    longPressed = pressed;
+                    longFired = true;
+                    pressed = -1;
+                }
+            }
+        }
         for (Scroll s : scrolls.values()) {
             if (!down && Math.abs(s.velocity) > 0.1f) {
                 s.offset += s.velocity;

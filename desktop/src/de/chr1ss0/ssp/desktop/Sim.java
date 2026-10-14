@@ -15,7 +15,6 @@ public final class Sim {
         for (int pl = 0; pl < players; pl++) {
             Profile p = new Profile();
             for (int run = 0; run < runsPer; run++) {
-                chooseLoadout(p);
                 RunLogic.newRun(p, r);
                 RunLogic.autoEquip(p, p.run.player);
                 while (true) {
@@ -43,16 +42,17 @@ public final class Sim {
                     }
                     RunLogic.onVictory(p, r);
                     int wid = RunLogic.rollBoxWeapon(p, r, rn.rewardBox);
-                    if (wid >= 0) p.unlock(wid);
-                    else RunLogic.drawCard(p, r);
-                    // upgrade a slot if the new weapon is better
                     if (wid >= 0) {
-                        int worst = -1;
-                        for (int s = 0; s < Run.SPECIALS; s++) {
-                            WeaponInst w = me.special(s);
-                            if (WeaponDef.get(wid).rarity > w.def.rarity && (worst < 0 || w.def.rarity < me.special(worst).def.rarity)) worst = s;
+                        p.unlock(wid);
+                        if (!rn.addWeapon(wid)) {
+                            // arsenal full: replace the weakest special if the new one is rarer
+                            int worst = -1;
+                            for (int s = 0; s < Run.SPECIALS; s++) {
+                                WeaponInst w = me.special(s);
+                                if (WeaponDef.get(wid).rarity > w.def.rarity && (worst < 0 || w.def.rarity < me.special(worst).def.rarity)) worst = s;
+                            }
+                            if (worst >= 0) rn.replaceSpecial(worst, wid);
                         }
-                        if (worst >= 0) rn.setSpecial(p, worst, wid);
                     }
                     RunLogic.autoEquip(p, me);
                     rn.phase = Run.PHASE_MAP;
@@ -62,6 +62,9 @@ public final class Sim {
             }
         }
         System.out.println("avg rounds per battle: " + (rounds / (double) battles));
+        int early = 0, total = 0;
+        for (int[] row : reached) for (int v : row) { total++; if (v <= 2) early++; }
+        System.out.printf("runs ending at stage 1-2: %.1f%%%n", early * 100.0 / total);
         for (int run = 0; run < runsPer; run++) {
             int sum = 0, min = 999, max = 0;
             for (int pl = 0; pl < players; pl++) {
@@ -71,23 +74,6 @@ public final class Sim {
             }
             System.out.printf("run %2d: died at stage avg %.1f (min %d, max %d)%n", run + 1, sum / (double) players, min, max);
         }
-    }
-
-    /** Best 3 unlocked specials by rarity. */
-    static void chooseLoadout(Profile p) {
-        int[] best = {-1, -1, -1};
-        for (int k = 0; k < 3; k++) {
-            int b = -1;
-            for (WeaponDef d : WeaponDef.ALL) {
-                if (d.isClassic() || !p.owned[d.id]) continue;
-                boolean taken = false;
-                for (int j = 0; j < k; j++) if (best[j] == d.id) taken = true;
-                if (taken) continue;
-                if (b < 0 || d.rarity > WeaponDef.get(b).rarity || (d.rarity == WeaponDef.get(b).rarity && d.atk > WeaponDef.get(b).atk)) b = d.id;
-            }
-            best[k] = b;
-        }
-        for (int k = 0; k < 3; k++) if (best[k] >= 0) p.loadout[k] = best[k];
     }
 
     /** Uses a special when it beats most of what the enemy can still pick, else a classic. */

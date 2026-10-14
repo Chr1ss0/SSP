@@ -32,6 +32,13 @@ public final class MapScreen extends Screen {
             Flow.toTitle(game);
             return;
         }
+        int lp = ui.longPress();
+        if (lp >= B_ENEMY_WEAPON && lp < B_ENEMY_WEAPON + enemy.weapons.size()) {
+            game.vibrate(25);
+            game.sound.sfx(Sound.S_SELECT);
+            game.push(new WeaponScreen(game, enemy.weapons.get(lp - B_ENEMY_WEAPON), -1, false));
+            return;
+        }
         int c = ui.click();
         if (c < 0) return;
         if (c >= B_ENEMY_WEAPON) {
@@ -116,7 +123,7 @@ public final class MapScreen extends Screen {
             if (cur) {
                 int bob = (int) (Math.sin(game.timeMs / 250.0) * 1.5);
                 g.fillEllipse(x, nodeY + 1, 10, 3, 0x40000000);
-                g.spriteHD(CharArt.front(game.profile.look, run.player.special(0).def.id), x - 24, nodeY - 47 + bob);
+                g.spriteHD(CharArt.front(game.profile.look, run.player.showcaseWeapon()), x - 24, nodeY - 47 + bob);
             }
         }
 
@@ -133,7 +140,7 @@ public final class MapScreen extends Screen {
         g.fillEllipse(50, py + ph - 9, 32, 5, 0x30000000);
         g.sprite(CharArt.front(enemy.look, -1), 10, py + 12, 1);
         int ix = 98;
-        g.text(enemy.title, ix, py + 20, Pal.INK_SOFT);
+        g.text(BattleScreen.ellipsize(enemy.fullName(), W() - ix - 10), ix, py + 20, Pal.INK_SOFT);
         g.text(enemy.name, ix, py + 31, Pal.INK);
         g.text("Lv." + enemy.level + "   " + Font.HEART + " " + enemy.maxHp + " KP", ix, py + 43, Pal.INK);
         g.text("ARSENAL", ix, py + 56, Pal.INK_SOFT);
@@ -157,7 +164,7 @@ public final class MapScreen extends Screen {
                 if ((extraTypes & (1 << t)) != 0 && !Element.beats(w.def.type, t)) g.spriteHD(Art.typeIcon(t), ix + 38 + (k2++) * 11, py + 99);
             }
         } else {
-            Ui.paragraph(g, boss ? "Sieg: Goldkiste, 2 Karten + volle KP" : "Tippe eine Waffe für Infos", ix, py + 90, W() - ix - 12, Pal.INK_SOFT);
+            Ui.paragraph(g, boss ? "Sieg: Goldkiste, 2 Karten + volle KP" : "Tippen: Info, lange drücken: Details", ix, py + 90, W() - ix - 12, Pal.INK_SOFT);
         }
 
         // ---- reward preview
@@ -178,6 +185,11 @@ public final class MapScreen extends Screen {
         for (int s = 0; s < Run.SPECIALS; s++) {
             WeaponInst w = pl.special(s);
             int wx = W() - 13 - (Run.SPECIALS - s) * 15;
+            if (w == null) {
+                g.roundRect(wx, my + 28, 13, 13, 3, 0xFFF1F2F8);
+                g.roundBorder(wx, my + 28, 13, 13, 3, 1, 0xFFD3D7E6);
+                continue;
+            }
             g.roundRect(wx, my + 28, 13, 13, 3, Pal.lighten(Element.COLOR[w.def.type], 0.5f));
             g.spriteHD(WeaponArt.iconSmall(w.def.id), wx + 1, my + 29);
         }

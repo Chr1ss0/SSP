@@ -1,8 +1,9 @@
 # Schnick Schnack Schnuck – Das Waffen-Duell
 
 Ein Schere-Stein-Papier-Roguelike für Android, aufgebaut wie die Kämpfe der ersten
-Pokémon-Spiele (Info-Boxen mit KP-Balken, Textbox, Held von hinten, Gegner von vorn),
-aber in einem modernen, hochauflösenden Pixel-Look mit 8-Bit-Musik.
+Pokémon-Spiele: Dein Monster (von hinten) tritt gegen die Monster anderer Trainer
+(von vorn) an, mit Info-Boxen, KP-Balken und Textbox. Dazu ein moderner,
+hochauflösender Pixel-Look und 8-Bit-Musik.
 Inspiriert von Roguelike-Deckbuildern wie *Balatro*: Karten sammeln, Waffen
 verbessern, so weit wie möglich kommen.
 
@@ -17,34 +18,40 @@ verbessern, so weit wie möglich kommen.
 
 ## Spielprinzip
 
-- **Runden:** Du wählst eine Waffe, der Gegner wählt gleichzeitig zufällig aus seinem
-  (sichtbaren) Arsenal. Dann heißt es *Schnick… Schnack… Schnuck!* Dein Held hält die
-  gewählte Waffe in der Hand.
-- **Arsenal (6 Waffen, für dich und jeden Gegner gleich):**
-  - **Stein, Schere, Papier** sind fest im Arsenal und **immer** einsetzbar (∞).
-  - **3 Spezialwaffen** belegst du selbst mit freigeschalteten Waffen. Nur sie tragen
-    Bonuskarten, und jede darf **nur einmal pro Gegner** eingesetzt werden (1×).
-    Für den Gegner gilt dieselbe Regel.
+- **Runden:** Du wählst eine Waffe, das gegnerische Monster wählt gleichzeitig zufällig
+  aus seinem (sichtbaren) Arsenal. Dann heißt es *Schnick… Schnack… Schnuck!* Dein
+  Monster hält die gewählte Waffe in der Pfote.
+- **Arsenal (für dich und jeden Gegner immer gleich groß):**
+  - Jeder Lauf beginnt mit **Stein, Schere und Papier**. Sie sind immer einsetzbar (∞).
+  - **Jede Kiste bringt eine Spezialwaffe dazu, bis zu 6 Waffen.** Ist das Arsenal
+    voll, kannst du eine Spezialwaffe ersetzen oder die neue liegen lassen.
+  - Spezialwaffen tragen Bonuskarten und dürfen **nur einmal pro Gegner** eingesetzt
+    werden (1×). Für den Gegner gilt dieselbe Regel.
+- **Kampfmenü:** Unter jeder deiner Waffen siehst du, **welche Waffen des Gegners sie
+  schlägt** (ausgegraut, wenn er sie schon benutzt hat). **Langes Drücken** auf eine
+  Waffe (deine oder die des Gegners) zeigt alle Details inklusive Bonuskarten.
 - **9 Typen:** Stein, Klinge, Papier, Feuer, Wasser, Blitz, Pflanze, Stich, Eis.
   Jeder Typ schlägt genau 4 andere und verliert gegen 4 (ausbalancierte Typentabelle
   im Waffendex). Gleicher Typ = Unentschieden.
 - **50 Waffen** vom Streichholz über Nadel und Flammenwerfer bis zum Meteoriten,
   jede mit Typ, Angriff, Abwehr, Seltenheit und Kartenplätzen, teils mit Fähigkeit.
 - **100 Bonuskarten:** Für jeden besiegten Gegner bekommst du **2 Bonuskarten** und
-  rüstest sie auf deine Spezialwaffen aus. Aus einer Waffe wird z. B. eine
+  rüstest sie auf deine Spezialwaffen aus (Reihenfolge: erst Kiste, dann Karten). Aus einer Waffe wird z. B. eine
   **Steinbrecher-Fackel** (besiegt auch Stein) oder ein **Diamant-Bambus** (+8 Angriff,
   +3 Abwehr). Es gibt Brecher, Immunitäten („Feuerfest“, „Gummi“ gegen Blitz …),
   Materialien, Gift, Vampir, Dornen, Doppelschlag, Hellseher, Phönix und mehr.
-  Im Kampf siehst du unter jeder Spezialwaffe die Symbole ihrer Karten.
-- **Kisten:** Nach jedem Sieg öffnest du eine Holz-, Eisen- oder Goldkiste. Sie schaltet
-  eine neue Waffe **dauerhaft** frei, die du direkt ins Arsenal legen kannst.
-- **Arenen:** 16 Trainerklassen, alle 5 Etappen ein Arenaleiter mit eigenem Typ,
-  nach Etappe 50 der Großmeister, danach endlos.
-- **Niederlage:** Der Lauf beginnt neu. **Bonuskarten und freigeschaltete Waffen
-  behältst du** und verteilst die Karten neu (oder per „Auto-Verteilen“).
-- **Charakter-Editor:** Name, 8 Frisuren, 10 Haarfarben, 6 Augenfarben, 6 Hauttöne,
-  Oberteil (T-Shirt, Hoodie, Jacke) und Hose in 12 Farben, Kopfbedeckung (Kappe,
-  Mütze, Krone, Zauberhut …), Brille & Co. Die Figuren sind schattiert und texturiert.
+- **Kisten:** Nach jedem Sieg öffnest du eine Holz-, Eisen- oder Goldkiste mit einer
+  Spezialwaffe für dein Arsenal. Neue Waffen werden im Waffendex freigeschaltet.
+- **Arenen:** 16 Trainerklassen mit passenden Monstern, alle 5 Etappen ein Arenaleiter
+  mit eigenem Typ und eigenem Monster, nach Etappe 50 der Großmeister, danach endlos.
+- **Niederlage:** Der Lauf beginnt neu mit Stein, Schere und Papier. **Deine
+  Bonuskarten behältst du** und verteilst sie auf die neuen Waffen (oder per
+  „Auto-Verteilen“).
+- **Monster-Editor:** Name, 8 Arten (Knuddel, Katze, Drache, Hase, Frosch, Vogel, Bär,
+  Fuchs), 12 Farben, 8 Bauchfarben, Muster (Streifen, Punkte, Spitzen), 6 Augenfarben,
+  Kopfschmuck (Hörner, Blatt, Flamme, Antennen, Kristall, Juwel), Schwanz (Blitz,
+  Flamme, Blatt, Puschel …), Hut (Kappe, Mütze, Krone, Zauberhut …) und Extras (Brille,
+  Sonnenbrille, Schal, Fliege). Alle Monster sind schattiert und haben Fell-Textur.
 - **Grafik:** Alle Waffen-, Karten- und Typ-Symbole in 32×32 (vorher 16×16), weiche
   Schrift (Outfit), abgerundete Panels, Verläufe und Schatten.
 - **8-Bit-Sound:** eigener Synthesizer (2× Pulse, Dreieck, Rauschen wie beim Game Boy),
@@ -83,7 +90,7 @@ Build-Umgebung dieser APK nicht ausgeführt (kein Zugriff auf Googles Maven-Repo
 app/src/main/java/de/chr1ss0/ssp/core/   plattformunabhängiges Spiel (reines Java)
     Gfx, Font, FontData, Ui               Software-Renderer (240×H logisch, 2× intern), Schrift, UI
     Sprite, Stamp, Shade                  Sprites, Formen, HD-Veredelung (Scale2x, Licht, Textur)
-    WeaponArt, CharArt, Art               Pixel-Art (Waffen, Charaktere, Karten, Kisten)
+    WeaponArt, CharArt, Art               Pixel-Art (Waffen, Monster, Karten, Kisten)
     Element, WeaponDef, BonusDef, Effect  Typen, 50 Waffen, 100 Karten
     Combat, Enemies, RunLogic, Cards      Kampfregeln, Gegner, Lauf-Logik
     Sound, Mml, Music, Sfx                8-Bit-Synthesizer, MML-Sequenzer, Musik, Effekte

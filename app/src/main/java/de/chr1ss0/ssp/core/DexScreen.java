@@ -44,7 +44,7 @@ public final class DexScreen extends Screen {
             ui.region(B_W + i, x, y, 22, 30);
         }
         int y = y0 + 6 * (cell + 8) + 4;
-        y += Ui.paragraph(g, "Waffen werden \"gesehen\", wenn ein Gegner sie trägt, und für immer freigeschaltet (\u2605), wenn du sie aus einer Kiste ziehst. Freigeschaltete Waffen kannst du im Arsenal einsetzen.",
+        y += Ui.paragraph(g, "Waffen werden \"gesehen\", wenn ein Gegner sie trägt, und für immer freigeschaltet (\u2605), wenn du sie zum ersten Mal aus einer Kiste ziehst.",
                 10, y, W() - 20, Pal.INK_SOFT);
         int by = H() - 56;
         ui.button(g, B_CHART, 30, by, W() - 60, 24, "TYPENTABELLE", Ui.BTN_NORMAL);

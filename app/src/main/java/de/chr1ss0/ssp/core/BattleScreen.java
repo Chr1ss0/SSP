@@ -131,11 +131,15 @@ public final class BattleScreen extends Screen {
 
         add(new Act(A_SLIDE_IN));
         String who = en.fullName();
-        if (resumed) msg("Der Kampf gegen " + who + " geht weiter!", 1400);
+        if (resumed) msg("Der Kampf gegen " + en.name + " geht weiter!", 1400);
         else if (Enemies.isBoss(run.stage)) {
             msg(who + " erwartet dich in der Arena " + Enemies.arenaName(run.stage).toUpperCase(java.util.Locale.GERMAN) + "!", -1);
-            msg(en.name + ": \"" + bossLine() + "\"", -1);
-        } else msg(who + " fordert dich heraus!", 1500);
+            msg(en.trainer + ": \"" + bossLine() + "\"", -1);
+            msg(en.trainer + " schickt " + en.name + " in den Kampf!", 1400);
+        } else {
+            msg(who + " fordert dich heraus!", 1300);
+            msg(en.trainer + " schickt " + en.name + " in den Kampf!", 1400);
+        }
         Act ch = new Act(A_CHOOSE);
         add(ch);
         state = ST_INTRO;
@@ -271,7 +275,7 @@ public final class BattleScreen extends Screen {
             act(A_FAINT, E);
             Act m = act(A_MUSIC, 0);
             m.a = Sound.M_VICTORY;
-            msg(en.fullName() + " wurde besiegt!", -1);
+            msg(en.name + " von " + en.trainer + " wurde besiegt!", -1);
             if (Enemies.isBoss(run.stage)) {
                 msg("Du hast die Arena " + Enemies.arenaName(run.stage).toUpperCase(java.util.Locale.GERMAN) + " erobert!", -1);
             }
@@ -294,7 +298,7 @@ public final class BattleScreen extends Screen {
     private void enterChoose() {
         state = ST_CHOOSE;
         hold[E] = -1;
-        chooseText = "Welche Waffe wählt " + pl.name + "?";
+        chooseText = "Welche Waffe wählt " + pl.name + "? (Lange drücken: Details)";
         Stats ps = pl.passive();
         if (ps.seer > 0 && rng.nextInt(100) < ps.seer) {
             preEnemy = en.randomAvailable(rng);
@@ -334,6 +338,19 @@ public final class BattleScreen extends Screen {
         updateParticles(dt);
 
         int c = ui.click();
+        int lp = ui.longPress();
+        if (state == ST_CHOOSE && lp >= 0) {
+            // long press: weapon details including its bonus cards
+            WeaponInst w = null;
+            if (lp >= B_WEAPON && lp < B_WEAPON + pl.weapons.size()) w = pl.weapons.get(lp - B_WEAPON);
+            else if (lp >= B_ENEMY && lp < B_ENEMY + en.weapons.size()) w = en.weapons.get(lp - B_ENEMY);
+            if (w != null) {
+                game.vibrate(25);
+                game.sound.sfx(Sound.S_SELECT);
+                game.push(new WeaponScreen(game, w, -1, false));
+                return;
+            }
+        }
         if (state == ST_CHOOSE) {
             if (c >= B_WEAPON && c < B_WEAPON + pl.weapons.size()) {
                 startRound(c - B_WEAPON);
@@ -428,7 +445,7 @@ public final class BattleScreen extends Screen {
             }
             case A_DEFEAT: {
                 int stage = run.stage;
-                String by = en.fullName();
+                String by = en.name;
                 RunLogic.onDefeat(prof);
                 game.save();
                 game.set(new GameOverScreen(game, stage, by, run), Game.TR_FADE);
@@ -892,7 +909,8 @@ public final class BattleScreen extends Screen {
         int colW = (w - 16) / cols;
         int avail = H() - menuY - bottomH - 6;
         int rowH = Math.max(48, Math.min(56, avail / 2));
-        int top = Math.max(menuY, H() - bottomH - 6 - 2 * rowH);
+        int rows = (n + cols - 1) / cols;
+        int top = Math.max(menuY, H() - bottomH - 6 - rows * rowH);
         boolean active = state == ST_CHOOSE;
 
         // tall screens: enemy arsenal overview in the free space
@@ -942,21 +960,7 @@ public final class BattleScreen extends Screen {
             g.textCenter(badge, x + colW - 9, yy + 4, Pal.WHITE);
             Ui.weaponTile(g, wi.def.id, x + (colW - 20) / 2, yy + 4, true);
             g.textCenter(ellipsize(wi.displayName(), colW - 6), x + colW / 2, yy + 27, Pal.INK);
-            int cy = yy + 37;
-            if (wi.isClassic()) {
-                String tn = Element.NAME[wi.def.type] + "  " + Font.SWORD + wi.stats().atk;
-                g.textCenter(tn, x + colW / 2, cy + 2, Pal.INK_SOFT);
-            } else {
-                int slots = wi.slots.length;
-                int sx = x + (colW - (slots * 13 - 1)) / 2;
-                for (int k = 0; k < slots; k++) {
-                    if (wi.slots[k] >= 0) Ui.cardMini(g, BonusDef.get(wi.slots[k]), sx + k * 13, cy);
-                    else {
-                        g.roundRect(sx + k * 13, cy, 12, 12, 3, 0xFFF1F2F8);
-                        g.roundBorder(sx + k * 13, cy, 12, 12, 3, 1, 0xFFD3D7E6);
-                    }
-                }
-            }
+            drawBeaten(g, wi, x, yy + 36, colW, bh - 38);
             if (!wi.available()) {
                 g.roundRect(x, yy, colW, bh, 7, 0xE6EEF0F6);
                 int pw = Math.min(colW - 6, Font.width("BENUTZT", 1) + 12);
@@ -965,7 +969,9 @@ public final class BattleScreen extends Screen {
             } else if (!active) {
                 g.roundRect(x, yy, colW, bh, 7, 0x60EEF0F6);
             }
-            if (usable) ui.region(id, x, y, colW, bh);
+            float hold = ui.holdProgress(id);
+            if (hold > 0.2f) g.roundRect(x + 6, yy + bh - 4, (int) ((colW - 12) * hold), 2, 1, Pal.ACCENT);
+            if (active) ui.region(id, x, y, colW, bh);
         }
         int by = H() - bottomH - 2;
         int half = (w - 18) / 2;
@@ -973,9 +979,36 @@ public final class BattleScreen extends Screen {
         ui.button(g, B_MENU, 12 + half, by, half, 22, "MENÜ", active ? Ui.BTN_NORMAL : Ui.BTN_DISABLED);
     }
 
+    /** Small icons of the enemy weapons this weapon beats (greyed out once the enemy has used them). */
+    private void drawBeaten(Gfx g, WeaponInst wi, int x, int y, int colW, int maxH) {
+        int n = 0;
+        for (WeaponInst ew : en.weapons) if (Combat.outcome(wi, ew) == Combat.WIN) n++;
+        if (n == 0) {
+            g.textCenter("\u2014", x + colW / 2, y + 2, Pal.GRAY);
+            return;
+        }
+        boolean big = maxH >= 14 && n * 15 <= colW - 4;
+        int size = big ? 14 : 11;
+        int step = Math.min(size + 1, (colW - 4) / n);
+        int sx = x + (colW - (step * (n - 1) + size)) / 2;
+        for (WeaponInst ew : en.weapons) {
+            if (Combat.outcome(wi, ew) != Combat.WIN) continue;
+            Sprite icon = big ? WeaponArt.iconMid(ew.def.id) : WeaponArt.iconSmall(ew.def.id);
+            if (ew.available()) {
+                g.roundRect(sx, y, size, size, 3, Pal.lighten(Element.COLOR[ew.def.type], 0.45f));
+                g.spriteHD(icon, sx, y);
+            } else {
+                g.roundRect(sx, y, size, size, 3, 0xFFE6E8F0);
+                g.spriteHD(icon, sx, y, 1, Gfx.MODE_SOLID, 0xFFB4B9CB);
+            }
+            sx += step;
+        }
+    }
+
     static String ellipsize(String s, int maxW) {
         if (Font.width(s, 1) <= maxW) return s;
         while (s.length() > 1 && Font.width(s + ".", 1) > maxW) s = s.substring(0, s.length() - 1);
+        while (s.length() > 1 && " +-".indexOf(s.charAt(s.length() - 1)) >= 0) s = s.substring(0, s.length() - 1);
         return s + ".";
     }
 }

@@ -111,7 +111,7 @@ public final class TitleScreen extends Screen {
         }
         ui.button(g, B_NEW, bx, by, bw, 23, "NEUES SPIEL", cont ? Ui.BTN_NORMAL : Ui.BTN_PRIMARY);
         by += 26;
-        ui.button(g, B_CHAR, bx, by, half, 23, "CHARAKTER", Ui.BTN_NORMAL);
+        ui.button(g, B_CHAR, bx, by, half, 23, "MONSTER", Ui.BTN_NORMAL);
         ui.button(g, B_DEX, bx + half + 6, by, half, 23, "WAFFENDEX", Ui.BTN_NORMAL);
         by += 26;
         ui.button(g, B_CARDS, bx, by, half, 23, "KARTEN", Ui.BTN_NORMAL);

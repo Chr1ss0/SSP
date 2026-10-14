@@ -10,7 +10,7 @@ public final class Flow {
             return;
         }
         run.syncPlayer(game.profile);
-        if (run.phase == Run.PHASE_REWARD && run.rewardBox >= 0) {
+        if (run.phase == Run.PHASE_REWARD && (run.rewardBox >= 0 || run.pendingCards.length > 0)) {
             game.set(new RewardScreen(game), Game.TR_FADE);
         } else {
             game.set(new MapScreen(game), Game.TR_FADE);
@@ -23,7 +23,6 @@ public final class Flow {
         p.run.syncPlayer(p);
         game.save();
         game.set(new MapScreen(game), Game.TR_FADE);
-        if (p.totalCards() > 0) game.push(new ArsenalScreen(game, true));
     }
 
     public static void startBattle(Game game) {
