@@ -47,7 +47,7 @@ public final class NameScreen extends Screen {
 
     @Override
     public void render(Gfx g) {
-        g.clear(Pal.BG);
+        Ui.background(g);
         Ui.header(g, "WIE HEISST DU?", W());
         int y = 30;
         Ui.box(g, 20, y, W() - 40, 36);

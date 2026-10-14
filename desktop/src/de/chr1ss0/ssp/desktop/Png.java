@@ -11,7 +11,7 @@ import java.io.IOException;
 /** Writes framebuffers / sprites to PNG files (desktop only). */
 public final class Png {
     public static void write(Gfx g, int scale, String path) throws IOException {
-        write(g.px, g.w, g.h, scale, path, false);
+        write(g.px, g.pw, g.ph, scale, path, false);
     }
 
     public static void write(Sprite s, int scale, String path, boolean alpha) throws IOException {

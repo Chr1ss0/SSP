@@ -58,7 +58,44 @@ public final class Fighter {
         rounds = 0;
         phoenixUsed = false;
         catUsed = false;
-        for (WeaponInst w : weapons) w.shieldUsed = 0;
+        for (WeaponInst w : weapons) {
+            w.shieldUsed = 0;
+            w.used = false;
+        }
+    }
+
+    /** Indices of weapons usable right now. */
+    public int[] availableIndices() {
+        int n = 0;
+        for (WeaponInst w : weapons) if (w.available()) n++;
+        int[] out = new int[n];
+        n = 0;
+        for (int i = 0; i < weapons.size(); i++) if (weapons.get(i).available()) out[n++] = i;
+        return out;
+    }
+
+    /** Random usable weapon index (the enemy's choice). */
+    public int randomAvailable(java.util.Random r) {
+        int[] a = availableIndices();
+        return a[r.nextInt(a.length)];
+    }
+
+    public WeaponInst special(int slot) {
+        int n = 0;
+        for (WeaponInst w : weapons) {
+            if (w.isClassic()) continue;
+            if (n++ == slot) return w;
+        }
+        return null;
+    }
+
+    public int specialIndex(int slot) {
+        int n = 0;
+        for (int i = 0; i < weapons.size(); i++) {
+            if (weapons.get(i).isClassic()) continue;
+            if (n++ == slot) return i;
+        }
+        return -1;
     }
 
     public boolean alive() {

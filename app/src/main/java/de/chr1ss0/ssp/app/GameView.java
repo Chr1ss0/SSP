@@ -9,6 +9,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import de.chr1ss0.ssp.core.Game;
+import de.chr1ss0.ssp.core.Gfx;
 import de.chr1ss0.ssp.core.Pal;
 
 /**
@@ -22,7 +23,8 @@ public final class GameView extends View {
     private Bitmap bitmap;
     private final Paint paint = new Paint();
     private final Rect src = new Rect(), dst = new Rect();
-    private int scale = 1, offX, offY;
+    private float scale = 1f;
+    private int offX, offY;
     private long lastNanos;
     private boolean running = true;
 
@@ -44,22 +46,28 @@ public final class GameView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (w <= 0 || h <= 0) return;
-        scale = Math.max(1, Math.min(w / Game.W, h / Game.MIN_H));
-        int vh = Math.max(Game.MIN_H, h / scale);
+        // fill the full width; one logical pixel = 'scale' screen pixels (fractional, nearest neighbour)
+        scale = w / (float) Game.W;
+        int vh = (int) (h / scale);
+        if (vh < Game.MIN_H) {
+            scale = h / (float) Game.MIN_H;
+            vh = Game.MIN_H;
+        }
         if (game == null) {
             game = new Game(activity, vh);
             activity.startAudio();
         } else {
             game.resize(vh);
         }
-        vh = game.H;
-        if (bitmap == null || bitmap.getHeight() != vh) {
-            bitmap = Bitmap.createBitmap(Game.W, vh, Bitmap.Config.ARGB_8888);
+        int pw = game.g.pw, ph = game.g.ph;
+        if (bitmap == null || bitmap.getWidth() != pw || bitmap.getHeight() != ph) {
+            bitmap = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888);
         }
-        offX = (w - Game.W * scale) / 2;
-        offY = Math.max(0, (h - vh * scale) / 2);
-        src.set(0, 0, Game.W, vh);
-        dst.set(offX, offY, offX + Game.W * scale, offY + vh * scale);
+        int dw = Math.round(Game.W * scale), dh = Math.round(game.H * scale);
+        offX = (w - dw) / 2;
+        offY = Math.max(0, (h - dh) / 2);
+        src.set(0, 0, pw, ph);
+        dst.set(offX, offY, offX + dw, offY + dh);
         lastNanos = 0;
     }
 
@@ -78,7 +86,12 @@ public final class GameView extends View {
             // keep the app alive; reset to a safe state
             android.util.Log.e("SSP", "frame failed", e);
         }
-        bitmap.setPixels(game.g.px, 0, Game.W, 0, 0, Game.W, game.H);
+        Gfx g = game.g;
+        if (bitmap.getWidth() != g.pw || bitmap.getHeight() != g.ph) {
+            bitmap = Bitmap.createBitmap(g.pw, g.ph, Bitmap.Config.ARGB_8888);
+            src.set(0, 0, g.pw, g.ph);
+        }
+        bitmap.setPixels(g.px, 0, g.pw, 0, 0, g.pw, g.ph);
         canvas.drawColor(Pal.BEZEL);
         canvas.drawBitmap(bitmap, src, dst, paint);
         if (running) postInvalidateOnAnimation();

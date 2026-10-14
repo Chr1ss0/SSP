@@ -28,10 +28,10 @@ public final class DexScreen extends Screen {
 
     @Override
     public void render(Gfx g) {
-        g.clear(Pal.BG);
+        Ui.background(g);
         Profile p = game.profile;
         Ui.header(g, "WAFFENDEX", W());
-        g.textCenter("GESEHEN " + p.seenCount() + "/50   " + Font.STAR + " BESESSEN " + p.ownedCount() + "/50", W() / 2, 24, Pal.INK);
+        g.textCenter("GESEHEN " + p.seenCount() + "/50   " + Font.STAR + " FREIGESCHALTET " + p.ownedCount() + "/50", W() / 2, 24, Pal.INK);
         int cols = 9, cell = 25;
         int x0 = (W() - cols * cell) / 2;
         int y0 = 38;
@@ -44,7 +44,7 @@ public final class DexScreen extends Screen {
             ui.region(B_W + i, x, y, 22, 30);
         }
         int y = y0 + 6 * (cell + 8) + 4;
-        y += Ui.paragraph(g, "Waffen werden \"gesehen\", wenn ein Gegner sie trägt, und \"besessen\", wenn du sie aus einer Kiste ziehst. Tippe für Details.",
+        y += Ui.paragraph(g, "Waffen werden \"gesehen\", wenn ein Gegner sie trägt, und für immer freigeschaltet (\u2605), wenn du sie aus einer Kiste ziehst. Freigeschaltete Waffen kannst du im Arsenal einsetzen.",
                 10, y, W() - 20, Pal.INK_SOFT);
         int by = H() - 56;
         ui.button(g, B_CHART, 30, by, W() - 60, 24, "TYPENTABELLE", Ui.BTN_NORMAL);

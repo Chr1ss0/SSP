@@ -55,7 +55,7 @@ public final class CardPickScreen extends Screen {
 
     @Override
     public void render(Gfx g) {
-        g.clear(Pal.BG);
+        Ui.background(g);
         Ui.header(g, "KARTE FÜR " + weapon.def.upper(), W());
         int y = 22;
         int cur = weapon.slots[slot];

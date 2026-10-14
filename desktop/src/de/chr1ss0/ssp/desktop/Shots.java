@@ -6,7 +6,7 @@ import java.util.Random;
 
 /**
  * Drives the real game headless: scripted walkthrough with screenshots,
- * then a random "monkey" test to catch crashes. Usage: Shots outDir [height]
+ * then a random "monkey" test to catch crashes. Usage: Shots outDir [height] [nomonkey|actionsPerHeight]
  */
 public final class Shots {
     static final class FakePlatform implements Platform {
@@ -52,6 +52,14 @@ public final class Shots {
         return game.top().getClass().getSimpleName();
     }
 
+    static boolean waitFor(String screen, int maxMs) {
+        for (int t = 0; t < maxMs; t += 50) {
+            if (top().equals(screen)) return true;
+            step(50);
+        }
+        return top().equals(screen);
+    }
+
     public static void main(String[] args) throws Exception {
         out = args.length > 0 ? args[0] : "out";
         int h = args.length > 1 ? Integer.parseInt(args[1]) : 520;
@@ -72,8 +80,7 @@ public final class Shots {
         tap(3); // done -> new run
         step(800);
         shot("map");
-        // fight
-        tap(1);
+        tap(1); // fight
         step(1200);
         shot("battle_intro");
         int guard = 0;
@@ -85,33 +92,23 @@ public final class Shots {
         }
         System.out.println("reached choose: " + choose);
         shot("battle_choose");
-        tap(31); // enemy weapon info
+        tap(31);
         shot("battle_enemyinfo");
-        tap(1);
+        tap(4); // first special weapon
         step(250);
         shot("battle_chant");
         step(1100);
         shot("battle_reveal");
+        boolean shotAttack = false, shotUsed = false;
+        Random rr = new Random(3);
         int victoryGuard = 0;
-        boolean shotCard = false, shotEquip = false, shotAttack = false;
         while (victoryGuard++ < 4000) {
             String t = top();
-            if (t.equals("CardScreen")) {
-                step(600);
-                if (!shotCard) { shot("card"); shotCard = true; }
-                if (!shotEquip) {
-                    tap(1);
-                    step(300);
-                    shot("equip");
-                    shotEquip = true;
-                    tap(100);
-                    step(400);
-                } else tap(2);
-                continue;
-            }
             if (t.equals("RewardScreen") || t.equals("GameOverScreen")) break;
             if (t.equals("BattleScreen") && game.ui.find(1) != null) {
-                int n = 1 + new Random().nextInt(3);
+                if (!shotUsed) { shot("battle_used"); shotUsed = true; }
+                int n = 1 + rr.nextInt(6);
+                if (game.ui.find(n) == null) n = 1 + rr.nextInt(3);
                 tap(n);
                 step(400);
                 continue;
@@ -126,15 +123,27 @@ public final class Shots {
         }
         System.out.println("after battle: " + top());
         if (top().equals("RewardScreen")) {
+            step(1200);
+            shot("reward_cards");
+            tap(10);
+            step(400);
+            shot("equip");
+            tap(130);
             step(500);
-            shot("reward");
+            tap(4);
+            step(400);
+            shot("box_closed");
             tap(1);
             step(1300);
             shot("box_open");
             step(1200);
             shot("box_show");
             tap(2);
-            step(600);
+            step(500);
+            shot("replace");
+            tap(100);
+            waitFor("MapScreen", 3000);
+            step(400);
             shot("map2");
         } else {
             step(1500);
@@ -142,9 +151,9 @@ public final class Shots {
             tap(1);
             step(800);
         }
-        // arsenal + weapon + card pick
-        if (top().equals("MapScreen") || top().equals("ArsenalScreen")) {
-            if (top().equals("MapScreen")) tap(2);
+        if (top().equals("ArsenalScreen")) { tap(1); step(500); }
+        if (top().equals("MapScreen")) {
+            tap(2);
             step(400);
             shot("arsenal");
             tap(100);
@@ -153,6 +162,11 @@ public final class Shots {
             tap(10);
             step(400);
             shot("cardpick");
+            game.back();
+            step(400);
+            tap(2);
+            step(400);
+            shot("weaponpick");
             game.back();
             step(400);
             game.back();
@@ -175,46 +189,53 @@ public final class Shots {
             game.back();
             step(400);
         }
-        // title submenus
         game.set(new TitleScreen(game), Game.TR_NONE);
         step(300);
         shot("title2");
         tap(4);
         step(400);
         shot("dex");
-        tap(1000);
+        tap(1000 + 19);
         step(400);
         shot("dex_weapon");
         game.back();
-        step(300);
+        waitFor("DexScreen", 1500);
+        step(700);
         tap(2);
+        waitFor("ChartScreen", 1500);
         step(400);
         shot("chart");
         tap(101);
         shot("chart_sel");
         game.back();
-        step(300);
+        waitFor("DexScreen", 1500);
+        step(700);
         game.back();
-        step(300);
+        waitFor("TitleScreen", 1500);
+        step(700);
         tap(6);
+        waitFor("OptionsScreen", 1500);
         step(400);
         shot("options");
         game.back();
-        step(300);
+        waitFor("TitleScreen", 1500);
+        step(700);
         tap(7);
+        waitFor("HelpScreen", 1500);
         step(400);
         shot("help");
         game.back();
         step(300);
 
         if (args.length > 2 && args[2].equals("nomonkey")) return;
+        int perHeight = args.length > 2 ? Integer.parseInt(args[2]) : 25000;
         // ---- monkey test
         Random r = new Random(7);
         long frames = 0;
         int[] heights = {360, 400, 480, 560, 640};
         for (int round = 0; round < heights.length; round++) {
             game.resize(heights[round]);
-            for (int i = 0; i < 25000; i++) {
+            for (int i = 0; i < perHeight; i++) {
                 int[] ids = game.ui.ids();
                 if (ids.length > 0 && r.nextInt(3) > 0) {
                     int id = ids[r.nextInt(ids.length)];

@@ -30,7 +30,7 @@ public final class AlbumScreen extends Screen {
 
     @Override
     public void render(Gfx g) {
-        g.clear(Pal.BG);
+        Ui.background(g);
         Profile p = game.profile;
         Ui.header(g, "KARTENALBUM  " + p.distinctCards() + "/" + BonusDef.ALL.length, W());
         g.textCenter("Karten insgesamt: " + p.totalCards(), W() / 2, 23, Pal.INK_SOFT);
@@ -75,7 +75,7 @@ public final class AlbumScreen extends Screen {
             g.text("Besitz: " + p.cards[sel] + "   Ausgerüstet: " + eq, 12, dy + detailH - 16, Pal.INK_SOFT);
             g.textRight("\"" + b.prefix + "-...\"", W() - 14, dy + 21, Pal.INK_SOFT);
         } else {
-            Ui.paragraph(g, "Tippe auf eine Karte für Details. Nach jeder gewonnenen Kampfrunde ziehst du eine neue Karte. Karten bleiben auch nach einer Niederlage erhalten!",
+            Ui.paragraph(g, "Tippe auf eine Karte für Details. Für jeden besiegten Gegner erhältst du 2 Bonuskarten. Karten bleiben auch nach einer Niederlage erhalten!",
                     12, dy + 10, W() - 24, Pal.INK_SOFT);
         }
         ui.button(g, B_BACK, 60, H() - 28, W() - 120, 24, "ZURÜCK", Ui.BTN_NORMAL);

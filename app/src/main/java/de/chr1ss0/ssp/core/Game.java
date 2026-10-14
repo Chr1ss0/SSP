@@ -50,7 +50,7 @@ public final class Game {
 
     public void resize(int height) {
         H = Math.max(MIN_H, height);
-        if (g == null || g.h != H) g = new Gfx(W, H);
+        if (g == null || g.h != H) g = new Gfx(W, H, Font.K);
     }
 
     public void applyVolumes() {

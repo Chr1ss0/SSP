@@ -12,7 +12,10 @@ public final class Profile {
     public final int[] cards = new int[BonusDef.ALL.length];
     public final boolean[] cardSeen = new boolean[BonusDef.ALL.length];
     public final boolean[] seen = new boolean[WeaponDef.ALL.length];
+    /** Unlocked weapons (from boxes; persistent). */
     public final boolean[] owned = new boolean[WeaponDef.ALL.length];
+    /** The three chosen special weapons. */
+    public final int[] loadout = WeaponDef.STARTERS.clone();
     public int runs, bestStage, totalWins, roundsWon, bossesBeaten, champion;
     public int musicVol = 2, sfxVol = 3, textSpeed = 1;
     public boolean vibrate = true;
@@ -23,6 +26,25 @@ public final class Profile {
     public Profile() {
         seen[WeaponDef.STEIN_ID] = seen[WeaponDef.SCHERE_ID] = seen[WeaponDef.PAPIER_ID] = true;
         owned[WeaponDef.STEIN_ID] = owned[WeaponDef.SCHERE_ID] = owned[WeaponDef.PAPIER_ID] = true;
+        for (int id : WeaponDef.STARTERS) owned[id] = seen[id] = true;
+    }
+
+    public void unlock(int id) {
+        owned[id] = true;
+        seen[id] = true;
+    }
+
+    /** Unlocked special weapons not yet in the given loadout. */
+    public boolean isInLoadout(int id) {
+        for (int l : loadout) if (l == id) return true;
+        return false;
+    }
+
+    /** Number of still locked special weapons. */
+    public int lockedCount() {
+        int n = 0;
+        for (WeaponDef d : WeaponDef.ALL) if (!d.isClassic() && !owned[d.id]) n++;
+        return n;
     }
 
     public int totalCards() {
@@ -88,6 +110,7 @@ public final class Profile {
         sb.append("cardSeen=").append(bits(cardSeen)).append('\n');
         sb.append("seen=").append(bits(seen)).append('\n');
         sb.append("owned=").append(bits(owned)).append('\n');
+        sb.append("loadout=").append(loadout[0]).append(',').append(loadout[1]).append(',').append(loadout[2]).append('\n');
         sb.append("stats=").append(runs).append(',').append(bestStage).append(',').append(totalWins).append(',')
                 .append(roundsWon).append(',').append(bossesBeaten).append(',').append(champion).append('\n');
         sb.append("opt=").append(musicVol).append(',').append(sfxVol).append(',').append(textSpeed).append(',')
@@ -118,6 +141,13 @@ public final class Profile {
             readBits(m.get("cardSeen"), p.cardSeen);
             readBits(m.get("seen"), p.seen);
             readBits(m.get("owned"), p.owned);
+            if (m.containsKey("loadout")) {
+                String[] lo = m.get("loadout").split(",");
+                for (int i = 0; i < 3 && i < lo.length; i++) {
+                    int id = Integer.parseInt(lo[i].trim());
+                    if (id >= 0 && id < WeaponDef.ALL.length && !WeaponDef.get(id).isClassic()) p.loadout[i] = id;
+                }
+            }
             for (int i = 0; i < p.cards.length; i++) if (p.cards[i] > 0) p.cardSeen[i] = true;
             if (m.containsKey("stats")) {
                 String[] s = m.get("stats").split(",");

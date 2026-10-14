@@ -5,8 +5,7 @@ public final class OptionsScreen extends Screen {
     private static final int B_BACK = 1, B_RESET = 2, B_PREV = 100, B_NEXT = 200;
     private static final String[] VOL = {"Aus", "Leise", "Mittel", "Laut"};
     private static final String[] SPEED = {"Langsam", "Normal", "Schnell"};
-    private static final String[] LABELS = {"Musik", "Soundeffekte", "Text-Tempo", "Vibration", "Neue Karten"};
-    private static final String[] POPUP = {"Alle zeigen", "Ab Selten", "Nur Text"};
+    private static final String[] LABELS = {"Musik", "Soundeffekte", "Text-Tempo", "Vibration"};
 
     public OptionsScreen(Game game) {
         super(game);
@@ -18,8 +17,7 @@ public final class OptionsScreen extends Screen {
             case 0: return VOL[p.musicVol];
             case 1: return VOL[p.sfxVol];
             case 2: return SPEED[p.textSpeed];
-            case 3: return p.vibrate ? "An" : "Aus";
-            default: return POPUP[p.cardPopup];
+            default: return p.vibrate ? "An" : "Aus";
         }
     }
 
@@ -29,8 +27,7 @@ public final class OptionsScreen extends Screen {
             case 0: p.musicVol = (p.musicVol + d + 4) % 4; break;
             case 1: p.sfxVol = (p.sfxVol + d + 4) % 4; break;
             case 2: p.textSpeed = (p.textSpeed + d + 3) % 3; break;
-            case 3: p.vibrate = !p.vibrate; if (p.vibrate) game.vibrate(60); break;
-            default: p.cardPopup = (p.cardPopup + d + 3) % 3; break;
+            default: p.vibrate = !p.vibrate; if (p.vibrate) game.vibrate(60); break;
         }
         game.applyVolumes();
         game.save();
@@ -74,7 +71,7 @@ public final class OptionsScreen extends Screen {
 
     @Override
     public void render(Gfx g) {
-        g.clear(Pal.BG);
+        Ui.background(g);
         Ui.header(g, "OPTIONEN", W());
         int y = 28;
         for (int r = 0; r < LABELS.length; r++) {
@@ -90,7 +87,7 @@ public final class OptionsScreen extends Screen {
         g.text("STATISTIK", 10, y, Pal.INK);
         y += 12;
         String[] stats = {
-                "Läufe: " + p.runs, "Rekord-Etappe: " + p.bestStage, "Siege: " + p.totalWins,
+                "Läufe: " + p.runs, "Rekord: " + p.bestStage + (p.bestStage == 1 ? " Etappe" : " Etappen"), "Siege: " + p.totalWins,
                 "Rundensiege: " + p.roundsWon, "Bosse besiegt: " + p.bossesBeaten, "Champion-Titel: " + p.champion
         };
         for (int i = 0; i < stats.length; i++) {

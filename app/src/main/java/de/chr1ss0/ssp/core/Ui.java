@@ -232,43 +232,70 @@ public final class Ui {
 
     // ---------------------------------------------------------------- drawing primitives
 
-    /** Game Boy style double-bordered box. */
-    public static void box(Gfx g, int x, int y, int w, int h) {
-        g.fill(x + 1, y + 1, w - 2, h - 2, Pal.WHITE);
-        g.rect(x + 1, y, w - 2, h, Pal.INK);
-        g.rect(x, y + 1, w, h - 2, Pal.INK);
-        g.rect(x + 3, y + 3, w - 6, h - 6, Pal.INK);
-        g.pset(x + 3, y + 3, Pal.WHITE);
-        g.pset(x + w - 4, y + 3, Pal.WHITE);
-        g.pset(x + 3, y + h - 4, Pal.WHITE);
-        g.pset(x + w - 4, y + h - 4, Pal.WHITE);
+    private static int[] bgCache;
+    private static int bgW, bgH;
+
+    /** Full-screen soft gradient background with a subtle diagonal pattern (cached). */
+    public static void background(Gfx g) {
+        if (bgCache == null || bgW != g.pw || bgH != g.ph) {
+            bgW = g.pw;
+            bgH = g.ph;
+            bgCache = new int[bgW * bgH];
+            for (int y = 0; y < bgH; y++) {
+                int base = Pal.mix(Pal.BG, Pal.BG2, y / (float) Math.max(1, bgH - 1));
+                int stripe = Pal.lighten(base, 0.25f);
+                for (int x = 0; x < bgW; x++) {
+                    boolean on = ((x + y) / 18) % 4 == 0;
+                    bgCache[y * bgW + x] = on ? Pal.mix(base, stripe, 0.35f) : base;
+                }
+            }
+        }
+        System.arraycopy(bgCache, 0, g.px, 0, Math.min(bgCache.length, g.px.length));
     }
 
-    /** Simple rounded panel with single border. */
+    /** Main content card (white, rounded, soft shadow). */
+    public static void box(Gfx g, int x, int y, int w, int h) {
+        g.shadow(x, y, w, h, 7, 60);
+        g.roundRect(x, y, w, h, 7, Pal.WHITE);
+        g.roundBorder(x, y, w, h, 7, 1, Pal.PANEL_BORDER);
+    }
+
+    /** Rounded panel; an INK border is drawn as a soft modern border. */
     public static void panel(Gfx g, int x, int y, int w, int h, int fill, int border) {
-        g.fill(x + 1, y + 1, w - 2, h - 2, fill);
-        g.hline(x + 1, y, w - 2, border);
-        g.hline(x + 1, y + h - 1, w - 2, border);
-        g.vline(x, y + 1, h - 2, border);
-        g.vline(x + w - 1, y + 1, h - 2, border);
+        int r = Math.min(6, Math.max(2, Math.min(w, h) / 4));
+        if (h >= 24 && w >= 40 && (fill >>> 24) == 255) g.shadow(x, y, w, h, r, 34);
+        int top = Pal.lighten(fill, 0.08f), bottom = fill;
+        g.roundRectGrad(x, y, w, h, r, (fill >>> 24) == 255 ? top : fill, bottom);
+        int b = border == Pal.INK ? 0xFFC3C9DE : border;
+        if (b != fill) g.roundBorder(x, y, w, h, r, 1, b);
     }
 
     public static final int BTN_NORMAL = 0, BTN_PRIMARY = 1, BTN_DANGER = 2, BTN_GHOST = 3, BTN_DISABLED = 4;
 
     public boolean button(Gfx g, int id, int x, int y, int w, int h, String label, int style) {
         boolean p = isPressed(id) && style != BTN_DISABLED;
-        int fill, text, shadow;
+        int top, bottom, text, border;
         switch (style) {
-            case BTN_PRIMARY: fill = 0xFFE84848; text = Pal.WHITE; shadow = 0xFF982020; break;
-            case BTN_DANGER: fill = 0xFF606878; text = Pal.WHITE; shadow = 0xFF303440; break;
-            case BTN_GHOST: fill = Pal.BG; text = Pal.INK; shadow = Pal.LIGHT; break;
-            case BTN_DISABLED: fill = Pal.LIGHT; text = Pal.GRAY; shadow = 0xFFB8B8C0; break;
-            default: fill = Pal.WHITE; text = Pal.INK; shadow = 0xFFB0B0BC; break;
+            case BTN_PRIMARY: top = 0xFFFF7E73; bottom = 0xFFEC4058; text = Pal.WHITE; border = 0xFFD0344B; break;
+            case BTN_DANGER: top = 0xFF737B9C; bottom = 0xFF525977; text = Pal.WHITE; border = 0xFF464C68; break;
+            case BTN_GHOST: top = 0x00FFFFFF; bottom = 0x00FFFFFF; text = Pal.INK_SOFT; border = 0xFFC3C9DE; break;
+            case BTN_DISABLED: top = 0xFFE9EBF2; bottom = 0xFFE1E4EE; text = 0xFFA8ADC2; border = 0xFFD8DCE8; break;
+            default: top = 0xFFFFFFFF; bottom = 0xFFEEF0F8; text = Pal.INK; border = 0xFFC3C9DE; break;
         }
-        if (p) fill = style == BTN_NORMAL || style == BTN_GHOST ? Pal.SELECT : Pal.lighten(fill, 0.2f);
+        int r = Math.min(7, h / 2);
         int oy = p ? 1 : 0;
-        if (!p) panel(g, x, y + 1, w, h, shadow, shadow);
-        panel(g, x, y + oy, w, h - 1, fill, Pal.INK);
+        if (p) {
+            top = Pal.mixA(top, 0xFF000000, 0.08f);
+            bottom = Pal.mixA(bottom, 0xFF000000, 0.08f);
+            if (style == BTN_NORMAL || style == BTN_GHOST) { top = 0xFFFFF4C8; bottom = 0xFFFFEAA8; }
+        } else if (style != BTN_GHOST && style != BTN_DISABLED) {
+            g.shadow(x, y, w, h - 1, r, 55);
+        }
+        g.roundRectGrad(x, y + oy, w, h - 1, r, top, bottom);
+        g.roundBorder(x, y + oy, w, h - 1, r, 1, border);
+        if (style == BTN_PRIMARY || style == BTN_DANGER) {
+            g.roundRect(x + 2, y + oy + 1, w - 4, 3, 2, 0x30FFFFFF);
+        }
         int ty = y + oy + (h - 1 - Font.CAP) / 2;
         g.textCenter(label, x + w / 2, ty, text);
         if (style != BTN_DISABLED) region(id, x, y, w, h);
@@ -281,54 +308,84 @@ public final class Ui {
         return Pal.HP_RED;
     }
 
-    /** "KP" bar in Gen-1 style. hp may be fractional for animation. */
+    /** Rounded HP bar with "KP" label. hp may be fractional for animation. */
     public static void hpBar(Gfx g, int x, int y, int w, float hp, int max) {
-        g.fill(x, y, 15, 7, Pal.INK);
-        Font.draw(g, "KP", x + 2, y, Pal.HP_YELLOW, 1);
-        int bx = x + 15;
-        int bw = w - 15;
-        g.fill(bx, y, bw, 7, Pal.INK);
-        g.fill(bx + 1, y + 2, bw - 2, 3, Pal.WHITE);
+        g.roundRect(x, y, 15, 8, 3, 0xFF2A2E45);
+        g.textCenter("KP", x + 7, y, Pal.HP_YELLOW);
+        int bx = x + 17;
+        int bw = w - 17;
+        g.roundRect(bx, y, bw, 8, 4, 0xFF2A2E45);
         int fw = max <= 0 ? 0 : Math.round((bw - 2) * Math.max(0, Math.min(1, hp / max)));
         if (fw > 0) {
             int c = hpColor(Math.round(hp), max);
-            g.fill(bx + 1, y + 2, fw, 3, c);
-            g.fill(bx + 1, y + 2, fw, 1, Pal.lighten(c, 0.4f));
+            g.roundRectGrad(bx + 1, y + 1, Math.max(2, fw), 6, 3, Pal.lighten(c, 0.35f), Pal.shade(c, 0.85f));
         }
     }
 
     public static void typeBadge(Gfx g, int type, int x, int y, int w) {
         int c = Element.COLOR[type];
-        panel(g, x, y, w, 11, c, Pal.shade(c, 0.6f));
-        g.textCenter(Element.UPPER[type], x + w / 2, y + 2, Element.TEXT[type]);
+        g.roundRectGrad(x, y, w, 11, 5, Pal.lighten(c, 0.18f), Pal.shade(c, 0.9f));
+        int tw = Font.width(Element.UPPER[type], 1);
+        if (tw + 12 <= w - 6) {
+            // icon and name centred as one group
+            int gx = x + (w - (tw + 12)) / 2;
+            g.spriteHD(Art.typeIcon(type), gx, y + 1);
+            g.text(Element.UPPER[type], gx + 12, y + 2, Element.TEXT[type]);
+        } else {
+            g.textCenter(Element.UPPER[type], x + w / 2, y + 2, Element.TEXT[type]);
+        }
     }
 
     public static void rarityBadge(Gfx g, int rarity, int x, int y) {
         String s = WeaponDef.RARITY_NAME[rarity].toUpperCase(java.util.Locale.GERMAN);
-        int w = Font.width(s, 1) + 6;
-        panel(g, x, y, w, 11, Pal.RARITY[rarity], Pal.shade(Pal.RARITY[rarity], 0.6f));
-        g.text(s, x + 3, y + 2, Pal.WHITE);
+        int w = Font.width(s, 1) + 8;
+        g.roundRectGrad(x, y, w, 11, 5, Pal.lighten(Pal.RARITY[rarity], 0.2f), Pal.RARITY[rarity]);
+        g.text(s, x + 4, y + 2, Pal.WHITE);
     }
 
-    /** Weapon icon in a type-coloured frame (size 20x20). */
+    /** Width a rarity badge will take. */
+    public static int rarityBadgeWidth(int rarity) {
+        return Font.width(WeaponDef.RARITY_NAME[rarity].toUpperCase(java.util.Locale.GERMAN), 1) + 8;
+    }
+
+    /** Weapon icon (32x32 HD art) in a type-coloured tile of 20x20 logical pixels. */
     public static void weaponTile(Gfx g, int weaponId, int x, int y, boolean known) {
         int type = WeaponDef.get(weaponId).type;
         int c = known ? Element.COLOR[type] : Pal.LIGHT;
-        panel(g, x, y, 20, 20, Pal.lighten(c, 0.35f), Pal.shade(c, 0.6f));
-        if (known) g.sprite(WeaponArt.icon(weaponId), x + 2, y + 2);
-        else {
-            g.sprite(WeaponArt.icon(weaponId), x + 2, y + 2, 1, false, Gfx.MODE_SOLID, Pal.GRAY);
-        }
+        g.roundRectGrad(x, y, 20, 20, 4, Pal.lighten(c, 0.55f), Pal.lighten(c, 0.25f));
+        g.roundBorder(x, y, 20, 20, 4, 1, known ? Pal.shade(c, 0.75f) : Pal.GRAY);
+        if (known) g.spriteHD(WeaponArt.icon(weaponId), x + 2, y + 2);
+        else g.spriteHD(WeaponArt.icon(weaponId), x + 2, y + 2, 1, Gfx.MODE_SOLID, 0xFF9FA4BC);
+    }
+
+    /** Weapon icon in a larger tile (size logical px, icon drawn at 1x or 2x HD). */
+    public static void weaponTileBig(Gfx g, int weaponId, int x, int y, int size) {
+        int type = WeaponDef.get(weaponId).type;
+        int c = Element.COLOR[type];
+        g.roundRectGrad(x, y, size, size, 6, Pal.lighten(c, 0.55f), Pal.lighten(c, 0.2f));
+        g.roundBorder(x, y, size, size, 6, 1, Pal.shade(c, 0.75f));
+        int sc = size >= 36 ? 2 : 1;
+        int is = 16 * sc;
+        g.spriteHD(WeaponArt.icon(weaponId), x + (size - is) / 2, y + (size - is) / 2, sc);
     }
 
     public static void cardTile(Gfx g, BonusDef b, int x, int y) {
         int c = Pal.RARITY[b.rarity];
-        panel(g, x, y, 20, 20, Pal.RARITY_LIGHT[b.rarity], c);
-        g.sprite(Art.bonusIcon(b), x + 2, y + 2);
+        g.roundRect(x, y, 20, 20, 4, Pal.RARITY_LIGHT[b.rarity]);
+        g.roundBorder(x, y, 20, 20, 4, 2, c);
+        g.spriteHD(Art.bonusIcon(b), x + 2, y + 2);
+    }
+
+    /** Small card icon (12x12 logical) used under weapon names. */
+    public static void cardMini(Gfx g, BonusDef b, int x, int y) {
+        g.roundRect(x, y, 12, 12, 3, Pal.RARITY_LIGHT[b.rarity]);
+        g.roundBorder(x, y, 12, 12, 3, 1, Pal.RARITY[b.rarity]);
+        g.spriteHD(Art.bonusIconSmall(b), x + 1, y + 1);
     }
 
     public static void emptySlot(Gfx g, int x, int y, int size) {
-        panel(g, x, y, size, size, Pal.BG, Pal.GRAY);
+        g.roundRect(x, y, size, size, 4, 0xFFF4F5FA);
+        g.roundBorder(x, y, size, size, 4, 1, 0xFFC3C9DE);
         g.textCenter("+", x + size / 2, y + (size - Font.CAP) / 2, Pal.GRAY);
     }
 
@@ -345,8 +402,8 @@ public final class Ui {
 
     /** Header bar used on menu screens. */
     public static void header(Gfx g, String title, int w) {
-        g.fill(0, 0, w, 18, Pal.INK);
-        g.fill(0, 18, w, 1, Pal.DARK);
+        g.gradientV(0, 0, w, 19, 0xFF6F61FF, Pal.ACCENT_DARK);
+        g.fill(0, 19, w, 1, 0x40000000);
         g.textCenter(title, w / 2, 6, Pal.WHITE);
     }
 }

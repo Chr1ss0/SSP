@@ -1,12 +1,13 @@
 # Schnick Schnack Schnuck – Das Waffen-Duell
 
-Ein Schere-Stein-Papier-Roguelike für Android im Look der ersten Pokémon-Kämpfe
-(Game-Boy-Pixelgrafik, Info-Boxen mit KP-Balken, Textbox, 8-Bit-Musik).
+Ein Schere-Stein-Papier-Roguelike für Android, aufgebaut wie die Kämpfe der ersten
+Pokémon-Spiele (Info-Boxen mit KP-Balken, Textbox, Held von hinten, Gegner von vorn),
+aber in einem modernen, hochauflösenden Pixel-Look mit 8-Bit-Musik.
 Inspiriert von Roguelike-Deckbuildern wie *Balatro*: Karten sammeln, Waffen
 verbessern, so weit wie möglich kommen.
 
 **APK:** [`dist/SchnickSchnackSchnuck.apk`](dist/SchnickSchnackSchnuck.apk)
-(Android 6.0+, ca. 120 KB, keine Berechtigungen außer Vibration)
+(Android 6.0+, keine Berechtigungen außer Vibration)
 
 ## Installation
 
@@ -16,27 +17,36 @@ verbessern, so weit wie möglich kommen.
 
 ## Spielprinzip
 
-- **Runden:** Du wählst eine deiner Waffen, der Gegner wählt gleichzeitig zufällig
-  aus seinem (sichtbaren) Arsenal. Dann heißt es *Schnick… Schnack… Schnuck!*
-  Dein Held hält die gewählte Waffe in der Hand.
+- **Runden:** Du wählst eine Waffe, der Gegner wählt gleichzeitig zufällig aus seinem
+  (sichtbaren) Arsenal. Dann heißt es *Schnick… Schnack… Schnuck!* Dein Held hält die
+  gewählte Waffe in der Hand.
+- **Arsenal (6 Waffen, für dich und jeden Gegner gleich):**
+  - **Stein, Schere, Papier** sind fest im Arsenal und **immer** einsetzbar (∞).
+  - **3 Spezialwaffen** belegst du selbst mit freigeschalteten Waffen. Nur sie tragen
+    Bonuskarten, und jede darf **nur einmal pro Gegner** eingesetzt werden (1×).
+    Für den Gegner gilt dieselbe Regel.
 - **9 Typen:** Stein, Klinge, Papier, Feuer, Wasser, Blitz, Pflanze, Stich, Eis.
   Jeder Typ schlägt genau 4 andere und verliert gegen 4 (ausbalancierte Typentabelle
   im Waffendex). Gleicher Typ = Unentschieden.
-- **50 Waffen** vom Streichholz über Nadel und Flammenwerfer bis zum Meteoriten –
-  jede mit Typ, Angriff, Abwehr, Seltenheit, teils Spezialfähigkeit.
-- **100 Bonuskarten:** Nach jeder gewonnenen Runde ziehst du eine zufällige Karte und
-  rüstest sie auf eine Waffe aus. Aus Schere wird z. B. **Steinbrecher-Schere** (besiegt
-  auch Stein), aus Papier **Diamant-Papier** (+8 Angriff, +3 Abwehr). Es gibt Brecher,
-  Immunitäten („Feuerfest“, „Gummi“ gegen Blitz …), Materialien, Gift, Vampir,
-  Dornen, Doppelschlag, Hellseher, Phönix und vieles mehr.
-- **Kisten:** Nach jedem Sieg öffnest du eine Holz-, Eisen- oder Goldkiste mit einer
-  neuen Waffe (max. 6 Waffen im Arsenal).
+- **50 Waffen** vom Streichholz über Nadel und Flammenwerfer bis zum Meteoriten,
+  jede mit Typ, Angriff, Abwehr, Seltenheit und Kartenplätzen, teils mit Fähigkeit.
+- **100 Bonuskarten:** Für jeden besiegten Gegner bekommst du **2 Bonuskarten** und
+  rüstest sie auf deine Spezialwaffen aus. Aus einer Waffe wird z. B. eine
+  **Steinbrecher-Fackel** (besiegt auch Stein) oder ein **Diamant-Bambus** (+8 Angriff,
+  +3 Abwehr). Es gibt Brecher, Immunitäten („Feuerfest“, „Gummi“ gegen Blitz …),
+  Materialien, Gift, Vampir, Dornen, Doppelschlag, Hellseher, Phönix und mehr.
+  Im Kampf siehst du unter jeder Spezialwaffe die Symbole ihrer Karten.
+- **Kisten:** Nach jedem Sieg öffnest du eine Holz-, Eisen- oder Goldkiste. Sie schaltet
+  eine neue Waffe **dauerhaft** frei, die du direkt ins Arsenal legen kannst.
 - **Arenen:** 16 Trainerklassen, alle 5 Etappen ein Arenaleiter mit eigenem Typ,
-  nach Etappe 50 der Großmeister – danach endlos.
-- **Niederlage:** Der Lauf beginnt neu mit Stein, Schere und Papier – **die Bonuskarten
-  behältst du** und verteilst sie neu (oder per „Auto-Verteilen“).
-- **Charakter-Editor:** Name, 8 Frisuren, 10 Haarfarben, 6 Hauttöne, Ober- und
-  Unterteil in 12 Farben, Kopfbedeckung (Kappe, Mütze, Krone, Zauberhut …), Brille & Co.
+  nach Etappe 50 der Großmeister, danach endlos.
+- **Niederlage:** Der Lauf beginnt neu. **Bonuskarten und freigeschaltete Waffen
+  behältst du** und verteilst die Karten neu (oder per „Auto-Verteilen“).
+- **Charakter-Editor:** Name, 8 Frisuren, 10 Haarfarben, 6 Augenfarben, 6 Hauttöne,
+  Oberteil (T-Shirt, Hoodie, Jacke) und Hose in 12 Farben, Kopfbedeckung (Kappe,
+  Mütze, Krone, Zauberhut …), Brille & Co. Die Figuren sind schattiert und texturiert.
+- **Grafik:** Alle Waffen-, Karten- und Typ-Symbole in 32×32 (vorher 16×16), weiche
+  Schrift (Outfit), abgerundete Panels, Verläufe und Schatten.
 - **8-Bit-Sound:** eigener Synthesizer (2× Pulse, Dreieck, Rauschen wie beim Game Boy),
   6 selbst komponierte Musikstücke (Titel, Route, Kampf, Boss, Sieg, Game Over) und
   über 20 Soundeffekte.
@@ -71,7 +81,8 @@ Build-Umgebung dieser APK nicht ausgeführt (kein Zugriff auf Googles Maven-Repo
 
 ```
 app/src/main/java/de/chr1ss0/ssp/core/   plattformunabhängiges Spiel (reines Java)
-    Gfx, Font, Sprite, Stamp, Ui          Software-Renderer 240×H Pixel, Pixel-Font, UI
+    Gfx, Font, FontData, Ui               Software-Renderer (240×H logisch, 2× intern), Schrift, UI
+    Sprite, Stamp, Shade                  Sprites, Formen, HD-Veredelung (Scale2x, Licht, Textur)
     WeaponArt, CharArt, Art               Pixel-Art (Waffen, Charaktere, Karten, Kisten)
     Element, WeaponDef, BonusDef, Effect  Typen, 50 Waffen, 100 Karten
     Combat, Enemies, RunLogic, Cards      Kampfregeln, Gegner, Lauf-Logik
@@ -92,3 +103,9 @@ Desktop-Werkzeuge (`tools/desk.sh <Name> [Argumente]`):
 | `Sim`        | Balance-Simulation über viele Läufe                                   |
 | `AudioCheck` | prüft die Musikstücke und rendert sie als WAV                         |
 | `IconGen`    | erzeugt die Launcher-Icons aus der Pixel-Art                          |
+| `FontGen`    | rendert die Schrift aus `tools/fonts` nach `core/FontData.java`       |
+
+## Schriften
+
+Outfit Bold und Inter Bold (beide SIL Open Font License, siehe `tools/fonts/`) werden
+beim Generieren in Glyphen-Bitmaps umgewandelt und sind so in der APK enthalten.

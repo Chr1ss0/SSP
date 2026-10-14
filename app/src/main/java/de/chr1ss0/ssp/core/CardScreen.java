@@ -26,7 +26,7 @@ public final class CardScreen extends Screen {
         int c = ui.click();
         if (c == B_EQUIP) {
             game.sound.sfx(Sound.S_SELECT);
-            game.push(new EquipScreen(game, card));
+            game.push(new EquipScreen(game, card, 2));
         } else if (c == B_KEEP) {
             game.sound.sfx(Sound.S_SELECT);
             game.pop();
@@ -62,23 +62,28 @@ public final class CardScreen extends Screen {
         ui.button(g, B_KEEP, x + cw - 72, by, 92, 24, "BEHALTEN", Ui.BTN_NORMAL);
     }
 
-    /** Shared card renderer (also used by the album). */
+    /** Shared card renderer (rewards, album). */
     public static void drawCard(Gfx g, BonusDef card, int x, int y, int cw, int ch, int owned, float timeMs) {
         int rc = Pal.RARITY[card.rarity];
-        Ui.panel(g, x, y, cw, ch, rc, Pal.INK);
-        Ui.panel(g, x + 4, y + 4, cw - 8, ch - 8, Pal.RARITY_LIGHT[card.rarity], Pal.shade(rc, 0.6f));
+        g.shadow(x, y, cw, ch, 9, 80);
+        g.roundRectGrad(x, y, cw, ch, 9, Pal.lighten(rc, 0.25f), Pal.shade(rc, 0.8f));
+        g.roundRectGrad(x + 4, y + 4, cw - 8, ch - 8, 7, 0xFFFFFFFF, Pal.RARITY_LIGHT[card.rarity]);
         String rn = WeaponDef.RARITY_NAME[card.rarity].toUpperCase(java.util.Locale.GERMAN);
-        g.textCenter(rn, x + cw / 2, y + 9, rc);
+        int tw = Font.width(rn, 1) + 10;
+        g.roundRect(x + (cw - tw) / 2, y + 8, tw, 11, 5, rc);
+        g.textCenter(rn, x + cw / 2, y + 10, Pal.WHITE);
         // art window
-        int ax = x + cw / 2 - 30, ay = y + 22;
-        Ui.panel(g, ax, ay, 60, 56, Pal.lighten(card.color, 0.7f), Pal.shade(rc, 0.6f));
+        int aw = Math.min(64, cw - 24), ah = 56;
+        int ax = x + (cw - aw) / 2, ay = y + 24;
+        g.roundRectGrad(ax, ay, aw, ah, 7, Pal.lighten(card.color, 0.75f), Pal.lighten(card.color, 0.45f));
+        g.roundBorder(ax, ay, aw, ah, 7, 1, Pal.shade(rc, 0.8f));
         int bob = (int) (Math.sin(timeMs / 300.0) * 2);
-        g.sprite(Art.bonusIcon(card), ax + 6, ay + 4 + bob, 3);
-        if (card.rarity == WeaponDef.LEGENDAER && ((int) (timeMs / 120)) % 6 == 0) {
-            g.pset(ax + 10, ay + 8, Pal.WHITE);
-            g.pset(ax + 50, ay + 40, Pal.WHITE);
+        g.spriteHD(Art.bonusIcon(card), ax + (aw - 48) / 2, ay + 4 + bob, 3);
+        if (card.rarity == WeaponDef.LEGENDAER) {
+            float t = (timeMs % 1600) / 1600f;
+            g.fillEllipse(ax + 8 + (int) (t * (aw - 16)), ay + 10, 1.5f, 1.5f, 0xE0FFFFFF);
         }
-        int ty = ay + 62;
+        int ty = ay + ah + 6;
         g.textCenter(card.upper(), x + cw / 2, ty, Pal.INK);
         ty += 11;
         g.textCenter("\"" + card.prefix + "-...\"", x + cw / 2, ty, Pal.INK_SOFT);

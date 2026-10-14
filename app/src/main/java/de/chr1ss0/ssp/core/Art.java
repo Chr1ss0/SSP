@@ -98,6 +98,12 @@ public final class Art {
     private static final HashMap<Long, Sprite> CACHE = new HashMap<Long, Sprite>();
 
     private static Sprite parseColored(String[] rows, int w, int h, int color) {
+        Sprite s = parseColoredRaw(rows, w, h, color);
+        s.addOutline(Pal.OUTLINE);
+        return s;
+    }
+
+    private static Sprite parseColoredRaw(String[] rows, int w, int h, int color) {
         int light = Pal.lighten(color, 0.45f), dark = Pal.shade(color, 0.7f);
         Sprite s = new Sprite(w, h);
         int ah = rows.length, aw = 0;
@@ -116,16 +122,37 @@ public final class Art {
                 if (xx >= 0 && yy >= 0 && xx < w && yy < h) s.px[yy * w + xx] = c;
             }
         }
-        s.addOutline(Pal.OUTLINE);
         return s;
     }
 
+    /** HD version: art parsed at natural size, Scale2x, shaded, outlined. */
+    private static Sprite hd(String[] rows, int color, int canvasW, int canvasH, int seed) {
+        int aw = 0;
+        for (String r : rows) aw = Math.max(aw, r.length());
+        Sprite base = parseColoredRaw(rows, aw, rows.length, color);
+        return Shade.enhance(Shade.center(Shade.scale2x(base), canvasW, canvasH), 1f, seed);
+    }
+
+    /** 32x32 HD icon of a bonus card. */
     public static Sprite bonusIcon(BonusDef b) {
         long key = ((long) b.icon << 32) | (b.color & 0xFFFFFFFFL);
         Sprite s = CACHE.get(key);
         if (s == null) {
-            s = parseColored(BONUS[b.icon], 16, 16, b.color);
+            s = hd(BONUS[b.icon], b.color, 32, 32, b.id * 13 + 5);
             CACHE.put(key, s);
+        }
+        return s;
+    }
+
+    private static final HashMap<Long, Sprite> SMALL = new HashMap<Long, Sprite>();
+
+    /** 20x20 downscaled card icon (for mini tiles). */
+    public static Sprite bonusIconSmall(BonusDef b) {
+        long key = ((long) b.icon << 32) | (b.color & 0xFFFFFFFFL);
+        Sprite s = SMALL.get(key);
+        if (s == null) {
+            s = Shade.downscale(bonusIcon(b), 20, 20);
+            SMALL.put(key, s);
         }
         return s;
     }
@@ -145,10 +172,12 @@ public final class Art {
     };
     private static final Sprite[] TYPE_CACHE = new Sprite[Element.COUNT];
 
+    /** 18x18 HD type symbol (9x9 logical). */
     public static Sprite typeIcon(int type) {
         Sprite s = TYPE_CACHE[type];
         if (s == null) {
-            s = Sprite.parseFixed(TYPE[type], 9, 9);
+            Sprite base = Sprite.parse(TYPE[type], false);
+            s = Shade.enhance(Shade.center(Shade.scale2x(base), 18, 18), 0.8f, type + 1);
             TYPE_CACHE[type] = s;
         }
         return s;
@@ -180,13 +209,12 @@ public final class Art {
     };
     private static final Sprite[][] BOX_CACHE = new Sprite[3][2];
 
-    /** part 0 = body, 1 = lid. */
+    /** HD box art (2x of the base art + margin); part 0 = body, 1 = lid. */
     public static Sprite box(int tier, int part) {
         Sprite s = BOX_CACHE[tier][part];
         if (s == null) {
             String[] a = part == 0 ? BOX_BODY : BOX_LID;
-            int aw = a[0].length() + 2, ah = a.length + 2;
-            s = parseColored(a, aw, ah, BOX_COLOR[tier]);
+            s = hd(a, BOX_COLOR[tier], a[0].length() * 2 + 2, a.length * 2 + 2, tier * 3 + part);
             BOX_CACHE[tier][part] = s;
         }
         return s;

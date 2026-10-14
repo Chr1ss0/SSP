@@ -8,11 +8,22 @@ public final class WeaponInst {
     public final int[] slots;
     /** Battle-temporary: shield hits used. */
     public int shieldUsed;
+    /** Battle-temporary: special weapons can only be used once per opponent. */
+    public boolean used;
 
     public WeaponInst(int defId) {
         this.def = WeaponDef.get(defId);
         this.slots = new int[def.slots];
         java.util.Arrays.fill(slots, -1);
+    }
+
+    public boolean isClassic() {
+        return def.isClassic();
+    }
+
+    /** Usable in the current battle (classics always, specials once). */
+    public boolean available() {
+        return def.isClassic() || !used;
     }
 
     public int equipped() {

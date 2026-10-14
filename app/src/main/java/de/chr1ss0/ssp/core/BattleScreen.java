@@ -13,7 +13,7 @@ public final class BattleScreen extends Screen {
 
     // actions
     private static final int A_MSG = 0, A_WAIT = 1, A_HOLD = 2, A_CHANT = 3, A_REVEAL = 4, A_ATTACK = 5, A_HIT = 6,
-            A_HEAL = 7, A_BLOCK = 8, A_STATUS = 9, A_FAINT = 10, A_CARD = 11, A_VICTORY = 12, A_DEFEAT = 13,
+            A_HEAL = 7, A_BLOCK = 8, A_STATUS = 9, A_FAINT = 10, A_VICTORY = 12, A_DEFEAT = 13,
             A_MUSIC = 14, A_CHOOSE = 15, A_SLIDE_IN = 16;
 
     private static final class Act {
@@ -99,7 +99,6 @@ public final class BattleScreen extends Screen {
     public void enter() {
         if (initialized) {
             // returned from an overlay (card, arsenal, menu)
-            if (cur != null && cur.kind == A_CARD) cur.t = 99999;
             if (pl != null) {
                 if (state == ST_CHOOSE) dispHp[P] = pl.hp;
                 else dispHp[P] = Math.min(dispHp[P], pl.maxHp);
@@ -119,6 +118,13 @@ public final class BattleScreen extends Screen {
         hold[P] = -1;
         hold[E] = -1;
         boolean resumed = run.enemyHp > 0;
+        if (resumed) {
+            applyMask(pl, run.usedMask);
+            applyMask(en, run.enemyUsedMask);
+        } else {
+            run.usedMask = 0;
+            run.enemyUsedMask = 0;
+        }
         run.phase = Run.PHASE_BATTLE;
         run.enemyHp = en.hp;
         game.save();
@@ -133,6 +139,19 @@ public final class BattleScreen extends Screen {
         Act ch = new Act(A_CHOOSE);
         add(ch);
         state = ST_INTRO;
+    }
+
+    private static void applyMask(Fighter f, int mask) {
+        for (int i = 0; i < f.weapons.size(); i++) {
+            WeaponInst w = f.weapons.get(i);
+            if (!w.isClassic() && (mask & (1 << i)) != 0) w.used = true;
+        }
+    }
+
+    private static int maskOf(Fighter f) {
+        int m = 0;
+        for (int i = 0; i < f.weapons.size(); i++) if (f.weapons.get(i).used) m |= 1 << i;
+        return m;
     }
 
     private String bossLine() {
@@ -182,7 +201,12 @@ public final class BattleScreen extends Screen {
 
     private void startRound(int weaponIndex) {
         WeaponInst pw = pl.weapons.get(weaponIndex);
-        int ei = preEnemy >= 0 ? preEnemy : rng.nextInt(en.weapons.size());
+        if (!pw.available()) {
+            game.sound.sfx(Sound.S_ERROR);
+            setText(pw.upper() + " wurde gegen " + en.name + " schon eingesetzt!", true);
+            return;
+        }
+        int ei = preEnemy >= 0 && en.weapons.get(preEnemy).available() ? preEnemy : en.randomAvailable(rng);
         preEnemy = -1;
         WeaponInst ew = en.weapons.get(ei);
         state = ST_ACTION;
@@ -195,6 +219,10 @@ public final class BattleScreen extends Screen {
         msg(en.name + " wählt " + ew.upper() + "!", 750);
 
         Combat.Result res = combat.round(pl, pw, en, ew);
+        if (!pw.isClassic()) pw.used = true;
+        if (!ew.isClassic()) ew.used = true;
+        run.usedMask = maskOf(pl);
+        run.enemyUsedMask = maskOf(en);
         for (Combat.Ev ev : res.events) {
             switch (ev.kind) {
                 case Combat.Ev.MSG: msg(ev.text, 1100); break;
@@ -224,7 +252,10 @@ public final class BattleScreen extends Screen {
         }
         if (res.outcome == Combat.DRAW && res.events.isEmpty()) msg("Unentschieden!", 900);
         lastWonRound = res.outcome == Combat.WIN ? 1 : 0;
-        if (res.outcome == Combat.WIN) run.roundsWon++;
+        if (res.outcome == Combat.WIN) {
+            run.roundsWon++;
+            prof.roundsWon++;
+        }
 
         boolean enemyDead = !en.alive();
         boolean playerDead = !pl.alive();
@@ -244,10 +275,7 @@ public final class BattleScreen extends Screen {
             if (Enemies.isBoss(run.stage)) {
                 msg("Du hast die Arena " + Enemies.arenaName(run.stage).toUpperCase(java.util.Locale.GERMAN) + " erobert!", -1);
             }
-            if (lastWonRound == 1) {
-                msg("Du ziehst eine Bonuskarte!", 700);
-                act(A_CARD, 0);
-            }
+            msg("Belohnung: " + Run.CARDS_PER_WIN + " Bonuskarten und eine Kiste!", 1200);
             act(A_VICTORY, 0);
         } else if (playerDead) {
             act(A_FAINT, P);
@@ -256,10 +284,6 @@ public final class BattleScreen extends Screen {
             msg(pl.name + " ist erschöpft...", -1);
             act(A_DEFEAT, 0);
         } else {
-            if (lastWonRound == 1) {
-                msg("Rundensieg! Du ziehst eine Bonuskarte!", 700);
-                act(A_CARD, 0);
-            }
             act(A_CHOOSE, 0);
         }
         // persist battle progress
@@ -273,7 +297,7 @@ public final class BattleScreen extends Screen {
         chooseText = "Welche Waffe wählt " + pl.name + "?";
         Stats ps = pl.passive();
         if (ps.seer > 0 && rng.nextInt(100) < ps.seer) {
-            preEnemy = rng.nextInt(en.weapons.size());
+            preEnemy = en.randomAvailable(rng);
             chooseText = "Hellsicht! " + en.name + " plant " + en.weapons.get(preEnemy).upper() + "!";
         }
         setText(chooseText, true);
@@ -395,23 +419,6 @@ public final class BattleScreen extends Screen {
             case A_MUSIC:
                 game.sound.music(a.a);
                 break;
-            case A_CARD: {
-                BonusDef b = RunLogic.drawCard(prof, rng);
-                game.sound.sfx(Sound.S_CARD);
-                game.save();
-                boolean popup = prof.cardPopup == 0 || (prof.cardPopup == 1 && b.rarity >= WeaponDef.SELTEN);
-                if (popup) {
-                    game.push(new CardScreen(game, b));
-                } else {
-                    // short notice instead of the overlay
-                    a.t = 99999;
-                    Act m = new Act(A_MSG);
-                    m.text = "Karte: " + b.upper() + " (" + WeaponDef.RARITY_NAME[b.rarity] + ") - " + b.describe().replace('\n', ',');
-                    m.a = 1300;
-                    queue.add(0, m);
-                }
-                break;
-            }
             case A_VICTORY: {
                 int healed = RunLogic.onVictory(prof, rng);
                 game.save();
@@ -466,7 +473,7 @@ public final class BattleScreen extends Screen {
                     bob[P] = 4;
                     bob[E] = 4;
                 }
-                if (((int) (a.t / 70)) % 2 == 0) hold[E] = en.weapons.get(rng.nextInt(en.weapons.size())).def.id;
+                if (((int) (a.t / 70)) % 2 == 0) hold[E] = en.weapons.get(en.randomAvailable(rng)).def.id;
                 return a.t >= 1140;
             }
             case A_REVEAL:
@@ -495,8 +502,6 @@ public final class BattleScreen extends Screen {
             case A_FAINT:
                 faint[a.side] = Math.min(1f, a.t / 650f);
                 return a.t >= 750;
-            case A_CARD:
-                return a.t >= 99999;
             case A_MUSIC:
                 return true;
             case A_CHOOSE:
@@ -672,75 +677,99 @@ public final class BattleScreen extends Screen {
 
     // ------------------------------------------------------------------ render
 
+    private int[] sceneCache;
+    private int sceneH = -1;
+
+    /** Sky, hills, meadow and platforms (cached per screen height). */
+    private void drawScene(Gfx g) {
+        int rows = tbY * g.k;
+        if (sceneCache == null || sceneH != g.ph) {
+            Gfx s = new Gfx(g.w, tbY, g.k);
+            int horizon = enY + 58;
+            s.gradientV(0, 0, s.w, horizon, 0xFF7DBDFF, 0xFFD7EEFF);
+            // clouds
+            int[][] clouds = {{30, enY + 18, 16}, {44, enY + 14, 12}, {200, enY + 66 - 52, 10}, {120, enY + 30, 9}, {132, enY + 27, 11}};
+            for (int[] c : clouds) s.fillEllipse(c[0], c[1], c[2], c[2] * 0.55f, 0xCCFFFFFF);
+            // hills
+            s.fillEllipse(40, horizon + 6, 70, 22, 0xFFB6DDB3);
+            s.fillEllipse(190, horizon + 8, 80, 26, 0xFFB6DDB3);
+            s.fillEllipse(120, horizon + 14, 90, 22, 0xFF9DD49A);
+            // meadow
+            s.gradientV(0, horizon, s.w, tbY - horizon, 0xFFAEE08A, 0xFF74C25A);
+            for (int y = horizon + 4; y < tbY; y += 6) {
+                for (int x = (y * 7) % 13; x < s.w; x += 13) s.fill(x, y, 2, 1, 0x30FFFFFF);
+            }
+            // platforms
+            platform(s, EN_X + 40, enY + 90, 46, 10);
+            platform(s, PL_X + 48, tbY - 6, 62, 13);
+            sceneCache = new int[rows * g.pw];
+            System.arraycopy(s.px, 0, sceneCache, 0, Math.min(sceneCache.length, s.px.length));
+            sceneH = g.ph;
+        }
+        System.arraycopy(sceneCache, 0, g.px, 0, Math.min(sceneCache.length, g.px.length));
+    }
+
+    private static void platform(Gfx s, int cx, int cy, int rx, int ry) {
+        s.fillEllipse(cx, cy + 3, rx + 2, ry + 1, 0x40000000);
+        s.fillEllipse(cx, cy, rx, ry, 0xFF6FAE52);
+        s.fillEllipse(cx, cy - 1, rx - 2, ry - 2, 0xFFC5EDA0);
+        s.fillEllipse(cx - 4, cy - 2, rx - 14, ry - 5, 0xFFD8F5BA);
+    }
+
     @Override
     public void render(Gfx g) {
         layout();
-        g.clear(Pal.BG);
-        if (oy > 0) {
-            // soft sky band above the scene on tall screens
-            g.fill(0, 0, W(), oy, 0xFFE8F0F8);
-            g.hline(0, oy, W(), 0xFFD8E4F0);
-        }
+        Ui.background(g);
         if (pl == null) return;
         int w = W();
+        drawScene(g);
 
-        // ground
         float s = state == ST_INTRO ? slideIn : 1f;
         int ex = (int) (EN_X - (1 - s) * 230) + (int) (lunge[E] * -0.8f);
         int ey = enY + (int) (lunge[E] * 0.6f) + (int) bob[E];
         int px = (int) (PL_X + (1 - s) * 240) + (int) lunge[P];
         int py = plY - (int) (lunge[P] * 0.5f) + (int) bob[P];
-        g.fillEllipse(EN_X + 40 + (int) ((s - 1) * 230), enY + 92, 40, 7, Pal.GROUND);
-        g.fillEllipse(EN_X + 40 + (int) ((s - 1) * 230), enY + 92, 34, 4, Pal.GROUND_DARK);
-        g.fillEllipse(PL_X + 50 + (int) ((1 - s) * 240), tbY - 2, 52, 8, Pal.GROUND);
 
-        // enemy sprite
-        Sprite es = CharArt.front(en.look, hold[E]);
-        drawFighter(g, es, ex, ey, E);
-        // player sprite
-        Sprite ps = CharArt.back(pl.look, hold[P]);
-        drawFighter(g, ps, px, py, P);
-
-        // effects
+        drawFighter(g, CharArt.front(en.look, hold[E]), ex, ey, E);
+        drawFighter(g, CharArt.back(pl.look, hold[P]), px, py, P);
         drawEffects(g);
 
-        // info boxes (hidden during intro slide)
         if (state != ST_INTRO || slideIn >= 1f) {
             drawEnemyInfo(g);
             drawPlayerInfo(g);
         }
 
-        // text box
-        Ui.box(g, 0, tbY, w, TB_H);
-        List<String> lines = Font.wrap(text.substring(0, Math.min(text.length(), (int) shown)), w - 22);
+        // text box (dark, modern)
+        g.shadow(4, tbY + 2, w - 8, TB_H - 4, 8, 70);
+        g.roundRectGrad(4, tbY + 2, w - 8, TB_H - 4, 8, 0xF6343A58, 0xF6252940);
+        g.roundBorder(4, tbY + 2, w - 8, TB_H - 4, 8, 1, 0xFF4B5276);
+        List<String> lines = Font.wrap(text.substring(0, Math.min(text.length(), (int) shown)), w - 28);
         int start = Math.max(0, lines.size() - 3);
-        for (int i = start; i < lines.size(); i++) g.text(lines.get(i), 10, tbY + 9 + (i - start) * 12, Pal.INK);
+        for (int i = start; i < lines.size(); i++) g.text(lines.get(i), 13, tbY + 10 + (i - start) * 12, 0xFFF4F6FF);
         if (cur != null && cur.kind == A_MSG && shown >= text.length() && cur.a < 0 && ((int) (game.timeMs / 300) & 1) == 0) {
-            g.text(String.valueOf(Font.MORE), w - 16, tbY + TB_H - 13, Pal.INK);
+            g.text(String.valueOf(Font.MORE), w - 20, tbY + TB_H - 16, Pal.GOLD);
         }
 
-        // menu
         drawMenu(g);
     }
 
     private void drawFighter(Gfx g, Sprite sp, int x, int y, int side) {
         boolean visible = !(blink[side] > 0 && ((int) (blink[side] / 80)) % 2 == 0);
         if (!visible) return;
-        int scale = 2;
         if (faint[side] > 0) {
             int rows = sp.h;
             int cut = (int) (rows * faint[side]);
-            int bottom = side == E ? enY + sp.h * scale : tbY;
+            int bottom = side == E ? enY + sp.h : tbY;
             g.clip(0, 0, W(), bottom);
-            g.spriteRows(sp, x, y + cut * scale, scale, 0, rows - cut);
+            g.spriteRows(sp, x, y + cut, 1, 0, rows - cut);
             g.noClip();
             return;
         }
-        if (side == P) g.clip(0, 0, W(), tbY);
+        if (side == P) g.clip(0, 0, W(), tbY + 3);
         if (glow[side] > 0 && ((int) (glow[side] / 60)) % 2 == 0) {
-            g.sprite(sp, x, y, scale, false, Gfx.MODE_SOLID, 0xFFF8F0A0);
+            g.sprite(sp, x, y, 1, false, Gfx.MODE_SOLID, 0xFFFFF4B0);
         } else {
-            g.sprite(sp, x, y, scale);
+            g.sprite(sp, x, y, 1);
         }
         g.noClip();
     }
@@ -803,96 +832,140 @@ public final class BattleScreen extends Screen {
         }
     }
 
+    private static void infoPanel(Gfx g, int x, int y, int w, int h) {
+        g.shadow(x, y, w, h, 7, 50);
+        g.roundRectGrad(x, y, w, h, 7, 0xF2FFFFFF, 0xF2EEF1FA);
+        g.roundBorder(x, y, w, h, 7, 1, 0xFFC9CFE3);
+    }
+
+    private static void levelPill(Gfx g, int level, int rightX, int y) {
+        String s = "Lv." + level;
+        int w = Font.width(s, 1) + 8;
+        g.roundRect(rightX - w, y - 1, w, 10, 5, Pal.ACCENT);
+        g.text(s, rightX - w + 4, y, Pal.WHITE);
+    }
+
     private void drawEnemyInfo(Gfx g) {
-        int x = 4, y = 4 + oy;
-        g.text(en.name, x + 4, y + 2, Pal.INK);
-        g.textRight(":L" + en.level, x + 124, y + 2, Pal.INK);
-        if (en.poisonTurns > 0) g.text("GIF", x + 4 + Font.width(en.name, 1) + 4, y + 2, 0xFFA040C0);
-        Ui.hpBar(g, x + 14, y + 14, 108, dispHp[E], en.maxHp);
-        // Gen-1 style bracket
-        g.vline(x, y + 12, 14, Pal.INK);
-        g.hline(x, y + 25, 126, Pal.INK);
-        g.pset(x + 126, y + 24, Pal.INK);
-        g.pset(x + 127, y + 23, Pal.INK);
-        // enemy arsenal
+        int x = 6, y = enY + 3, w = 126;
+        infoPanel(g, x, y, w, 30);
+        g.text(ellipsize(en.name, 70), x + 7, y + 5, Pal.INK);
+        if (en.poisonTurns > 0) {
+            g.roundRect(x + 10 + Font.width(en.name, 1), y + 4, 22, 10, 5, 0xFFA040C0);
+            g.text("GIFT", x + 12 + Font.width(en.name, 1), y + 5, Pal.WHITE);
+        }
+        levelPill(g, en.level, x + w - 6, y + 5);
+        Ui.hpBar(g, x + 7, y + 17, w - 14, dispHp[E], en.maxHp);
+        // enemy arsenal (used specials are crossed out)
         for (int i = 0; i < en.weapons.size(); i++) {
-            int wx = x + 2 + i * 21, wy = y + 30;
-            Ui.weaponTile(g, en.weapons.get(i).def.id, wx, wy, true);
-            if (en.weapons.get(i).equipped() > 0) g.fill(wx + 15, wy + 1, 4, 4, Pal.RARITY[3]);
+            int wx = x + i * 21, wy = y + 33;
+            WeaponInst wi = en.weapons.get(i);
+            Ui.weaponTile(g, wi.def.id, wx, wy, true);
+            if (wi.equipped() > 0) g.fillEllipse(wx + 17, wy + 3, 2, 2, Pal.RARITY[3]);
+            if (!wi.available()) {
+                g.roundRect(wx, wy, 20, 20, 4, 0xB0EEF0F6);
+                g.textCenter(String.valueOf(Font.CROSS), wx + 10, wy + 7, Pal.RED);
+            }
             if (state == ST_CHOOSE) ui.region(B_ENEMY + i, wx, wy, 20, 20);
         }
     }
 
     private void drawPlayerInfo(Gfx g) {
-        int x = 108, y = 112 + oy;
-        g.text(pl.name, x + 6, y, Pal.INK);
-        g.textRight(":L" + run.stage, x + 126, y, Pal.INK);
-        if (pl.poisonTurns > 0) g.text("GIF", x + 6 + Font.width(pl.name, 1) + 4, y, 0xFFA040C0);
-        Ui.hpBar(g, x + 16, y + 12, 110, dispHp[P], pl.maxHp);
-        String hp = Math.round(dispHp[P]) + "/" + pl.maxHp;
-        g.textRight(hp, x + 126, y + 23, Pal.INK);
-        if (pl.focus > 0) g.text("FOKUS +" + pl.focus, x + 6, y + 23, Pal.BLUE);
-        // bracket
-        g.vline(x + 128, y + 10, 26, Pal.INK);
-        g.hline(x + 2, y + 35, 127, Pal.INK);
-        g.pset(x + 1, y + 34, Pal.INK);
-        g.pset(x, y + 33, Pal.INK);
+        int x = 108, y = plY + 22, w = 126;
+        infoPanel(g, x, y, w, 38);
+        g.text(ellipsize(pl.name, 70), x + 7, y + 5, Pal.INK);
+        if (pl.poisonTurns > 0) {
+            g.roundRect(x + 10 + Font.width(pl.name, 1), y + 4, 22, 10, 5, 0xFFA040C0);
+            g.text("GIFT", x + 12 + Font.width(pl.name, 1), y + 5, Pal.WHITE);
+        }
+        levelPill(g, run.stage, x + w - 6, y + 5);
+        Ui.hpBar(g, x + 7, y + 17, w - 14, dispHp[P], pl.maxHp);
+        String hp = Math.round(dispHp[P]) + " / " + pl.maxHp;
+        g.textRight(hp, x + w - 7, y + 27, Pal.INK_SOFT);
+        if (pl.focus > 0) g.text("FOKUS +" + pl.focus, x + 7, y + 27, Pal.BLUE);
     }
 
     private void drawMenu(Gfx g) {
         int w = W();
         int bottomH = 24;
         int n = pl.weapons.size();
-        int rows = (n + 1) / 2;
-        int avail = H() - menuY - bottomH - 8;
-        int rowH = Math.max(32, Math.min(44, avail / 3));
-        int top = Math.max(menuY, H() - bottomH - 6 - rows * rowH);
-        int colW = (w - 18) / 2;
+        int cols = 3;
+        int colW = (w - 16) / cols;
+        int avail = H() - menuY - bottomH - 6;
+        int rowH = Math.max(48, Math.min(56, avail / 2));
+        int top = Math.max(menuY, H() - bottomH - 6 - 2 * rowH);
         boolean active = state == ST_CHOOSE;
+
+        // tall screens: enemy arsenal overview in the free space
+        int gapTop = menuY + 2, gapBottom = top - 14;
+        int listRows = (en.weapons.size() + 2) / 3;
+        int panelH = 18 + listRows * 22;
+        if (gapBottom - gapTop >= panelH + 4) {
+            int py = gapTop + (gapBottom - gapTop - panelH) / 2;
+            Ui.panel(g, 6, py, w - 12, panelH, 0xFFF7F8FC, Pal.PANEL_BORDER);
+            g.text("ARSENAL VON " + en.name, 12, py + 5, Pal.INK_SOFT);
+            g.textRight("Runde " + (pl.rounds + (state == ST_CHOOSE ? 1 : 0)), w - 12, py + 5, Pal.INK_SOFT);
+            int cw = (w - 20) / 3;
+            for (int i = 0; i < en.weapons.size(); i++) {
+                WeaponInst ew = en.weapons.get(i);
+                int x = 10 + (i % 3) * cw, y = py + 17 + (i / 3) * 22;
+                Ui.weaponTile(g, ew.def.id, x, y, true);
+                g.text(ellipsize(ew.displayName(), cw - 26), x + 23, y + 2, ew.available() ? Pal.INK : Pal.GRAY);
+                if (ew.available()) {
+                    int[] bl = Element.beatsList(ew.def.type);
+                    for (int k = 0; k < bl.length; k++) g.spriteHD(Art.typeIcon(bl[k]), x + 23 + k * 10, y + 11);
+                } else {
+                    g.text("benutzt", x + 23, y + 12, Pal.GRAY);
+                }
+                if (state == ST_CHOOSE) ui.region(B_ENEMY + i, x, y, cw - 2, 20);
+            }
+        }
         if (active && top > menuY + 12) {
             g.textCenter("WÄHLE DEINE WAFFE", w / 2, top - 11, Pal.INK_SOFT);
         }
-        // tall screens: enemy arsenal overview in the free space
-        int gapTop = menuY + 2, gapBottom = top - 16;
-        int en_n = en.weapons.size();
-        int listRows = (en_n + 1) / 2;
-        int panelH = 16 + listRows * 22;
-        if (gapBottom - gapTop >= panelH + 4) {
-            int py = gapTop + (gapBottom - gapTop - panelH) / 2;
-            Ui.panel(g, 6, py, w - 12, panelH, 0xFFF0EEE4, Pal.GRAY);
-            g.text("ARSENAL VON " + en.name, 12, py + 4, Pal.INK_SOFT);
-            g.textRight("Runde " + (pl.rounds + (state == ST_CHOOSE ? 1 : 0)), w - 12, py + 4, Pal.INK_SOFT);
-            for (int i = 0; i < en_n; i++) {
-                WeaponInst ew = en.weapons.get(i);
-                int x = 10 + (i % 2) * ((w - 20) / 2), y = py + 15 + (i / 2) * 22;
-                Ui.weaponTile(g, ew.def.id, x, y, true);
-                g.text(ellipsize(ew.displayName(), (w - 20) / 2 - 30), x + 24, y + 2, Pal.INK);
-                int[] bl = Element.beatsList(ew.def.type);
-                g.text(Font.UP + "", x + 24, y + 12, Pal.GREEN);
-                for (int k = 0; k < bl.length; k++) g.sprite(Art.typeIcon(bl[k]), x + 31 + k * 10, y + 11);
-                if (state == ST_CHOOSE) ui.region(B_ENEMY + i, x, y, (w - 20) / 2 - 2, 20);
-            }
-        }
+
         for (int i = 0; i < n; i++) {
             WeaponInst wi = pl.weapons.get(i);
-            int x = 6 + (i % 2) * (colW + 6), y = top + (i / 2) * rowH;
+            int x = 6 + (i % cols) * (colW + 2), y = top + (i / cols) * rowH;
             int id = B_WEAPON + i;
-            boolean pressed = ui.isPressed(id);
-            int fill = !active ? Pal.LIGHT : (pressed ? Pal.SELECT : Pal.WHITE);
-            Ui.panel(g, x, y + (pressed ? 1 : 0), colW, rowH - 3, fill, active ? Pal.INK : Pal.GRAY);
-            int iy = y + (rowH - 3 - 20) / 2 + (pressed ? 1 : 0);
-            Ui.weaponTile(g, wi.def.id, x + 3, iy, true);
-            String name = ellipsize(wi.displayName(), colW - 30);
-            int ty = y + (rowH - 3) / 2 - 9 + (pressed ? 1 : 0);
-            g.text(name, x + 27, ty, active ? Pal.INK : Pal.INK_SOFT);
-            int[] m = Combat.matchup(wi, en.weapons);
-            int hx = x + 27, hy = ty + 11;
-            g.text(Font.UP + "" + m[0], hx, hy, Pal.GREEN);
-            g.text("=" + m[1], hx + 16, hy, Pal.INK_SOFT);
-            g.text(Font.MORE + "" + m[2], hx + 32, hy, Pal.RED);
-            Stats st = wi.stats();
-            g.textRight(Font.SWORD + "" + st.atk, x + colW - 4, hy, Pal.INK_SOFT);
-            if (active) ui.region(id, x, y, colW, rowH - 3);
+            boolean usable = active && wi.available();
+            boolean pressed = usable && ui.isPressed(id);
+            int bh = rowH - 4;
+            int yy = y + (pressed ? 1 : 0);
+            if (!pressed && usable) g.shadow(x, y, colW, bh, 7, 40);
+            int topC = pressed ? 0xFFFFF4C8 : 0xFFFFFFFF, botC = pressed ? 0xFFFFE9A8 : 0xFFEEF1FA;
+            g.roundRectGrad(x, yy, colW, bh, 7, topC, botC);
+            g.roundBorder(x, yy, colW, bh, 7, 1, wi.isClassic() ? 0xFFC3C9DE : 0xFFB9A9FF);
+            // badge: unlimited classics vs once-per-opponent specials
+            String badge = wi.isClassic() ? "\u221E" : "1\u00D7";
+            int bc = wi.isClassic() ? 0xFF8A90A8 : Pal.ACCENT;
+            g.roundRect(x + colW - 16, yy + 3, 13, 10, 5, bc);
+            g.textCenter(badge, x + colW - 9, yy + 4, Pal.WHITE);
+            Ui.weaponTile(g, wi.def.id, x + (colW - 20) / 2, yy + 4, true);
+            g.textCenter(ellipsize(wi.displayName(), colW - 6), x + colW / 2, yy + 27, Pal.INK);
+            int cy = yy + 37;
+            if (wi.isClassic()) {
+                String tn = Element.NAME[wi.def.type] + "  " + Font.SWORD + wi.stats().atk;
+                g.textCenter(tn, x + colW / 2, cy + 2, Pal.INK_SOFT);
+            } else {
+                int slots = wi.slots.length;
+                int sx = x + (colW - (slots * 13 - 1)) / 2;
+                for (int k = 0; k < slots; k++) {
+                    if (wi.slots[k] >= 0) Ui.cardMini(g, BonusDef.get(wi.slots[k]), sx + k * 13, cy);
+                    else {
+                        g.roundRect(sx + k * 13, cy, 12, 12, 3, 0xFFF1F2F8);
+                        g.roundBorder(sx + k * 13, cy, 12, 12, 3, 1, 0xFFD3D7E6);
+                    }
+                }
+            }
+            if (!wi.available()) {
+                g.roundRect(x, yy, colW, bh, 7, 0xE6EEF0F6);
+                int pw = Math.min(colW - 6, Font.width("BENUTZT", 1) + 12);
+                g.roundRect(x + (colW - pw) / 2, yy + 24, pw, 13, 6, 0xFF8A90A8);
+                g.textCenter("BENUTZT", x + colW / 2, yy + 27, Pal.WHITE);
+            } else if (!active) {
+                g.roundRect(x, yy, colW, bh, 7, 0x60EEF0F6);
+            }
+            if (usable) ui.region(id, x, y, colW, bh);
         }
         int by = H() - bottomH - 2;
         int half = (w - 18) / 2;

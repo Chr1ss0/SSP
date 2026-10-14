@@ -1,32 +1,36 @@
 package de.chr1ss0.ssp.core;
 
-/** Global colour palette (Game Boy Color inspired) and string-art colour codes. */
+/** Global colour palette and string-art colour codes. */
 public final class Pal {
     public static final int CLEAR = 0x00000000;
     public static final int OUTLINE = 0xFF202028;
 
-    // UI colours
-    public static final int BG = 0xFFF8F8F0;
-    public static final int INK = 0xFF202028;
-    public static final int INK_SOFT = 0xFF606070;
-    public static final int WHITE = 0xFFF8F8F8;
-    public static final int GRAY = 0xFFA0A0A8;
-    public static final int LIGHT = 0xFFD8D8E0;
-    public static final int DARK = 0xFF484850;
-    public static final int BEZEL = 0xFF30303C;
-    public static final int HP_GREEN = 0xFF30C048;
-    public static final int HP_YELLOW = 0xFFF8C020;
-    public static final int HP_RED = 0xFFE83030;
-    public static final int GROUND = 0xFFD8E0B0;
-    public static final int GROUND_DARK = 0xFFB8C890;
-    public static final int SELECT = 0xFFFFF0B0;
-    public static final int RED = 0xFFE83030;
-    public static final int BLUE = 0xFF3870E0;
-    public static final int GREEN = 0xFF30A040;
-    public static final int GOLD = 0xFFE8A800;
+    // UI colours (modern light theme)
+    public static final int BG = 0xFFF2F0FA;
+    public static final int BG2 = 0xFFE3E9F6;
+    public static final int INK = 0xFF1E2238;
+    public static final int INK_SOFT = 0xFF697090;
+    public static final int WHITE = 0xFFFFFFFF;
+    public static final int GRAY = 0xFFA3A8C0;
+    public static final int LIGHT = 0xFFDDE1EE;
+    public static final int DARK = 0xFF3A3F5C;
+    public static final int BEZEL = 0xFF1E2238;
+    public static final int PANEL_BORDER = 0xFFD3D8E8;
+    public static final int HP_GREEN = 0xFF34D07A;
+    public static final int HP_YELLOW = 0xFFFFC23D;
+    public static final int HP_RED = 0xFFFF5A5F;
+    public static final int GROUND = 0xFFCDE7B0;
+    public static final int GROUND_DARK = 0xFFA9D18A;
+    public static final int SELECT = 0xFFFFF4C8;
+    public static final int RED = 0xFFF0475A;
+    public static final int BLUE = 0xFF4C7DFF;
+    public static final int GREEN = 0xFF1FAE6B;
+    public static final int GOLD = 0xFFF5A623;
+    public static final int ACCENT = 0xFF6A5CFF;
+    public static final int ACCENT_DARK = 0xFF4A3DC9;
 
-    public static final int[] RARITY = {0xFF888890, 0xFF3070E0, 0xFFA040E0, 0xFFE8A000};
-    public static final int[] RARITY_LIGHT = {0xFFE8E8EC, 0xFFD8E4FF, 0xFFF0DCFF, 0xFFFFF0C0};
+    public static final int[] RARITY = {0xFF8A90A8, 0xFF3D7BFF, 0xFFA24DFF, 0xFFF5A623};
+    public static final int[] RARITY_LIGHT = {0xFFF1F2F7, 0xFFE3ECFF, 0xFFF2E6FF, 0xFFFFF3D6};
 
     private static final int[] MAP = new int[128];
 
@@ -89,6 +93,19 @@ public final class Pal {
         int ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
         int br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
         return 0xFF000000 | ((int) (ar + (br - ar) * t) << 16) | ((int) (ag + (bg - ag) * t) << 8) | (int) (ab + (bb - ab) * t);
+    }
+
+    /** Mixes two colours including their alpha channels. */
+    public static int mixA(int a, int b, float t) {
+        int aa = a >>> 24, ba = b >>> 24;
+        int ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+        int br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+        return ((int) (aa + (ba - aa) * t) << 24) | ((int) (ar + (br - ar) * t) << 16)
+                | ((int) (ag + (bg - ag) * t) << 8) | (int) (ab + (bb - ab) * t);
+    }
+
+    public static int alpha(int c, int a) {
+        return (a << 24) | (c & 0xFFFFFF);
     }
 
     private Pal() {}

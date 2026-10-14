@@ -42,6 +42,10 @@ public final class Cards {
             {0, 40, 42, 18},
     };
 
+    public static int[] boxWeights(int tier) {
+        return BOX_WEIGHTS[Math.max(0, Math.min(2, tier))];
+    }
+
     /** Random weapon id from a box, excluding the given owned ids. */
     public static int randomWeapon(Random r, int boxTier, Fighter owner) {
         for (int attempt = 0; attempt < 50; attempt++) {

@@ -113,25 +113,28 @@ public final class Enemies {
             types = CLASS_TYPES[cls];
         }
 
-        int count = stage <= 8 ? 3 : (stage <= 18 ? 4 : (stage <= 30 ? 5 : 6));
-        if (boss) count = Math.min(6, count + 1);
+        // same structure as the player: Stein, Schere, Papier + 3 specials
+        for (int id : WeaponDef.CLASSICS) addWeapon(f, id);
+        int count = Run.MAX_WEAPONS;
         int maxRarity = stage < 4 ? 0 : (stage < 10 ? 1 : (stage < 20 ? 2 : 3));
         if (boss) maxRarity = Math.min(3, maxRarity + 1);
 
         ArrayList<Integer> pool = new ArrayList<Integer>();
         for (WeaponDef d : WeaponDef.ALL) {
-            if (d.rarity > maxRarity || !contains(types, d.type)) continue;
-            if (stage <= 2 && !boss && d.id != WeaponDef.STEIN_ID && d.id != WeaponDef.SCHERE_ID && d.id != WeaponDef.PAPIER_ID) continue;
+            if (d.isClassic() || d.rarity > maxRarity || !contains(types, d.type)) continue;
             pool.add(d.id);
         }
-        // boss cover weapons: something that beats the counters of the main type
+        // boss cover weapon: something that beats the counters of the main type
         if (boss && types.length == 1) {
             int[] counters = Element.losesList(types[0]);
             int cover = counters[r.nextInt(counters.length)];
             int[] coverTypes = Element.losesList(cover);
             int ct = coverTypes[r.nextInt(coverTypes.length)];
             int[] ids = WeaponDef.ofType(ct);
-            addWeapon(f, ids[r.nextInt(Math.min(ids.length, 3))]);
+            for (int tries = 0; tries < 10; tries++) {
+                int id = ids[r.nextInt(Math.min(ids.length, 3))];
+                if (!WeaponDef.get(id).isClassic()) { addWeapon(f, id); break; }
+            }
         }
         while (f.weapons.size() < count && !pool.isEmpty()) {
             int idx = pickWeighted(pool, r);
@@ -141,27 +144,27 @@ public final class Enemies {
         // fallback (pool exhausted)
         while (f.weapons.size() < count) {
             int id = r.nextInt(WeaponDef.ALL.length);
-            if (!f.hasWeapon(id) && WeaponDef.get(id).rarity <= maxRarity) addWeapon(f, id);
+            if (!f.hasWeapon(id) && !WeaponDef.get(id).isClassic() && WeaponDef.get(id).rarity <= maxRarity) addWeapon(f, id);
         }
 
         // bonus cards
-        int cards = Math.max(0, (stage - 1) / 2) + (boss ? 2 : 0);
+        int cards = Math.max(0, (stage - 1) / 3) + (boss ? 1 : 0);
         for (int i = 0; i < cards; i++) {
             BonusDef b = Cards.randomCard(r, Math.min(2, stage / 12));
             if (b.effects[0].isPassive() && b.effects[0].kind != Effect.MAXHP && b.effects[0].kind != Effect.REGEN) continue;
-            WeaponInst w = f.weapons.get(r.nextInt(f.weapons.size()));
+            WeaponInst w = f.weapons.get(3 + r.nextInt(f.weapons.size() - 3));
             int slot = w.freeSlot();
             if (slot >= 0) w.slots[slot] = b.id;
         }
 
         f.level = stage;
-        int hp = 20 + 7 * stage;
-        if (boss) hp = hp * 8 / 5;
+        int hp = 15 + 4 * stage;
+        if (boss) hp = hp * 3 / 2;
         f.baseMaxHp = hp;
         f.maxHp = 0;
         f.recalcMaxHp();
         f.hp = f.maxHp;
-        f.dmgPct = Math.min(500, 100 + 5 * (stage - 1));
+        f.dmgPct = Math.min(400, 100 + 4 * (stage - 1));
         return f;
     }
 

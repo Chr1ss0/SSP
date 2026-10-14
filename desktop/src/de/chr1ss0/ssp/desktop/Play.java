@@ -53,6 +53,7 @@ public final class Play {
                         Fighter me = run.player;
                         Fighter e = Enemies.create(run.seed, run.stage);
                         for (int i = 0; i < me.weapons.size(); i++) {
+                            if (game.ui.find(i + 1) == null) continue; // used special
                             int[] m = Combat.matchup(me.weapons.get(i), e.weapons);
                             double s = m[0] * (1 + me.weapons.get(i).stats().atk / 10.0) - m[2] + Math.random() * 0.2;
                             if (s > bestScore) { bestScore = s; best = i + 1; }
@@ -71,22 +72,33 @@ public final class Play {
                     }
                     break;
                 }
-                case "CardScreen":
-                    Shots.step(550);
-                    Shots.tap(2);
-                    break;
                 case "RewardScreen":
+                    Shots.step(1000);
+                    // equip the first card if possible, then open the box
+                    if (game.ui.find(10) != null) {
+                        Shots.tap(10);
+                        Shots.step(300);
+                        if (Shots.top().equals("EquipScreen")) {
+                            Shots.tap(100 + 3 * 10);
+                            Shots.step(300);
+                        }
+                    }
+                    Shots.tap(4);
                     Shots.step(300);
                     Shots.tap(1);
-                    Shots.step(2200);
-                    Shots.tap(2); // take
+                    Shots.step(2300);
+                    if (game.ui.find(2) != null) Shots.tap(2); // into arsenal
+                    else Shots.tap(3);
                     Shots.step(400);
+                    break;
+                case "EquipScreen":
+                    Shots.tap(100 + 3 * 10);
+                    Shots.step(300);
+                    if (Shots.top().equals("EquipScreen")) game.back();
                     break;
                 case "ReplaceScreen":
                     if (!replaceShot) { Shots.shot("replace"); replaceShot = true; }
-                    Shots.tap(100 + 3);
-                    Shots.step(100);
-                    Shots.tap(0); // dialog yes
+                    Shots.tap(100 + new java.util.Random().nextInt(3));
                     Shots.step(900);
                     break;
                 case "DialogScreen":

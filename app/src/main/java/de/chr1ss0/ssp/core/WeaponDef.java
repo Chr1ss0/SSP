@@ -32,7 +32,14 @@ public final class WeaponDef {
         return name.toUpperCase(java.util.Locale.GERMAN);
     }
 
+    public boolean isClassic() {
+        return id == STEIN_ID || id == SCHERE_ID || id == PAPIER_ID;
+    }
+
     public static final int STEIN_ID = 0, SCHERE_ID = 6, PAPIER_ID = 12;
+    public static final int[] CLASSICS = {STEIN_ID, SCHERE_ID, PAPIER_ID};
+    /** Special weapons every player starts with (Fackel, Wasserpistole, Bambus). */
+    public static final int[] STARTERS = {19, 24, 35};
 
     public static final WeaponDef[] ALL;
 
@@ -43,8 +50,9 @@ public final class WeaponDef {
         return new WeaponDef(n++, name, type, rarity, atk, def, slots, desc, innate);
     }
 
+    /** Stein, Schere, Papier: always available, unlimited use, no card slots. */
     private static WeaponDef classic(String name, int type, int atk, int def, String desc) {
-        return new WeaponDef(n++, name, type, GEWOEHNLICH, atk, def, 3, desc);
+        return new WeaponDef(n++, name, type, GEWOEHNLICH, atk, def, 0, desc);
     }
 
     static {

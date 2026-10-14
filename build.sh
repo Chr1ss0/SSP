@@ -9,8 +9,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION_CODE=1
-VERSION_NAME=1.0
+VERSION_CODE=2
+VERSION_NAME=2.0
 PACKAGE=de.chr1ss0.ssp
 MIN_SDK=23
 TARGET_SDK=34

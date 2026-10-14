@@ -72,26 +72,27 @@ public final class MapScreen extends Screen {
     @Override
     public void render(Gfx g) {
         Run run = game.profile.run;
-        g.clear(Pal.BG);
+        Ui.background(g);
         if (run == null || enemy == null) return;
         int stage = run.stage;
-        Ui.header(g, "ARENA " + (((stage - 1) / 5) + 1) + ": " + Enemies.arenaName(stage).toUpperCase(java.util.Locale.GERMAN), W());
+        Ui.header(g, "ARENA " + (((stage - 1) / 5) + 1) + " " + Font.DOT + " " + Enemies.arenaName(stage).toUpperCase(java.util.Locale.GERMAN), W());
+        // route at the top, buttons at the bottom, panels spread in between
         int extra = Math.max(0, H() - 360);
-        int gap = Math.min(18, extra / 4);
-        int total = 84 + gap + 112 + 6 + gap + 38 + gap + 58;
-        int ry = 20 + Math.max(2, (H() - 20 - total) / 2);
+        int ry = 24 + Math.min(8, extra / 20);
+        int by = H() - 58 - Math.min(8, extra / 20);
+        int ph = 112, mh = 44, rh = 30;
+        int spare = by - 4 - (ry + 76) - ph - mh;
+        boolean strip = spare >= rh + 3 * 10;
+        if (strip) spare -= rh;
+        int gap = Math.max(2, spare / (strip ? 4 : 3));
 
         // ---- route
         int base = ((stage - 1) / 5) * 5 + 1;
-        int nodeY = ry + 58;
-        // grass strip
-        g.fill(0, nodeY - 4, W(), 18, 0xFFD8E8B8);
-        for (int x = 0; x < W(); x += 6) g.pset(x + ((x / 6) & 1) * 3, nodeY + 10, 0xFFA8C888);
-        for (int i = 0; i < 5; i++) {
+        int nodeY = ry + 56;
+        Ui.panel(g, 6, ry + 26, W() - 12, 44, 0xFFE9F6DD, 0xFFB9DDA0);
+        for (int i = 0; i < 4; i++) {
             int x = 28 + i * 46;
-            if (i < 4) {
-                for (int dx = 8; dx < 38; dx += 4) g.fill(x + dx, nodeY + 1, 2, 2, Pal.GRAY);
-            }
+            for (int dx = 10; dx < 38; dx += 5) g.roundRect(x + dx, nodeY + 1, 3, 2, 1, 0xFFA6C793);
         }
         for (int i = 0; i < 5; i++) {
             int s = base + i;
@@ -100,79 +101,124 @@ public final class MapScreen extends Screen {
             boolean done = s < stage;
             boolean cur = s == stage;
             int r = boss ? 8 : 6;
-            g.fillCircle(x, nodeY + 2, r + 1, Pal.INK);
-            int fill = done ? Pal.HP_GREEN : (cur ? Pal.WHITE : Pal.LIGHT);
-            if (boss && !done) fill = cur ? Pal.WHITE : 0xFFE8C8C8;
-            g.fillCircle(x, nodeY + 2, r, fill);
-            if (done) g.text(String.valueOf(Font.CHECK), x - 2, nodeY - 1, Pal.WHITE);
+            int fill = done ? Pal.HP_GREEN : (cur ? Pal.WHITE : 0xFFDDE3EC);
+            if (boss && !done) fill = cur ? Pal.WHITE : 0xFFFFD9D9;
+            g.fillEllipse(x, nodeY + 3, r + 1, r + 1, 0x40000000);
+            g.fillEllipse(x, nodeY + 2, r + 1, r + 1, done ? 0xFF1E9E58 : (boss ? 0xFFE0626A : 0xFF9AA3BC));
+            g.fillEllipse(x, nodeY + 2, r, r, fill);
+            if (done) g.textCenter(String.valueOf(Font.CHECK), x, nodeY - 1, Pal.WHITE);
             if (boss) {
-                // tiny crown
-                int cx = x - 4, cy = nodeY - 14;
-                g.fill(cx, cy + 3, 9, 3, Pal.GOLD);
-                g.pset(cx, cy + 2, Pal.GOLD); g.pset(cx + 4, cy + 1, Pal.GOLD); g.pset(cx + 8, cy + 2, Pal.GOLD);
-                g.pset(cx + 4, cy + 2, Pal.GOLD);
+                int cx = x - 5, cy = nodeY - 16;
+                g.roundRect(cx, cy + 3, 11, 4, 1, Pal.GOLD);
+                g.fill(cx, cy, 2, 3, Pal.GOLD); g.fill(cx + 4, cy - 1, 3, 4, Pal.GOLD); g.fill(cx + 9, cy, 2, 3, Pal.GOLD);
             }
-            g.textCenter(String.valueOf(s), x, nodeY + 16, cur ? Pal.RED : Pal.INK_SOFT);
+            g.textCenter(String.valueOf(s), x, nodeY + 13, cur ? Pal.RED : Pal.INK_SOFT);
             if (cur) {
                 int bob = (int) (Math.sin(game.timeMs / 250.0) * 1.5);
-                Sprite hero = CharArt.front(game.profile.look, run.player.weapons.get(0).def.id);
-                g.sprite(hero, x - 24, nodeY - 46 + bob);
+                g.fillEllipse(x, nodeY + 1, 10, 3, 0x40000000);
+                g.spriteHD(CharArt.front(game.profile.look, run.player.special(0).def.id), x - 24, nodeY - 47 + bob);
             }
         }
 
-        // ---- enemy panel
-        int py = ry + 84 + gap;
-        int ph = 112;
+        // ---- enemy card
+        int py = ry + 76 + gap;
         boolean boss = Enemies.isBoss(stage);
-        Ui.panel(g, 6, py, W() - 12, ph, boss ? 0xFFFBE8E0 : Pal.WHITE, Pal.INK);
-        g.text(boss ? "ARENA-BOSS!" : "NÄCHSTER GEGNER", 12, py + 5, boss ? Pal.RED : Pal.INK_SOFT);
-        g.fillEllipse(48, py + ph - 8, 30, 4, Pal.GROUND);
-        g.sprite(CharArt.front(enemy.look, -1), 8, py + 14, 2);
+        Ui.box(g, 6, py, W() - 12, ph);
+        if (boss) {
+            g.roundRect(12, py + 6, Font.width("ARENA-BOSS", 1) + 10, 11, 5, Pal.RED);
+            g.text("ARENA-BOSS", 17, py + 8, Pal.WHITE);
+        } else {
+            g.text("NÄCHSTER GEGNER", 12, py + 7, Pal.INK_SOFT);
+        }
+        g.fillEllipse(50, py + ph - 9, 32, 5, 0x30000000);
+        g.sprite(CharArt.front(enemy.look, -1), 10, py + 12, 1);
         int ix = 98;
-        g.text(enemy.title, ix, py + 18, Pal.INK_SOFT);
-        Font.draw(g, enemy.name, ix, py + 29, Pal.INK, 1);
-        g.text("Lv." + enemy.level + "   KP " + enemy.maxHp, ix, py + 41, Pal.INK);
-        g.text("WAFFEN:", ix, py + 54, Pal.INK_SOFT);
+        g.text(enemy.title, ix, py + 20, Pal.INK_SOFT);
+        g.text(enemy.name, ix, py + 31, Pal.INK);
+        g.text("Lv." + enemy.level + "   " + Font.HEART + " " + enemy.maxHp + " KP", ix, py + 43, Pal.INK);
+        g.text("ARSENAL", ix, py + 56, Pal.INK_SOFT);
         for (int i = 0; i < enemy.weapons.size(); i++) {
-            int wx = ix + (i % 6) * 22, wy = py + 64 + (i / 6) * 22;
+            int wx = ix + (i % 6) * 22, wy = py + 66;
             WeaponInst w = enemy.weapons.get(i);
             Ui.weaponTile(g, w.def.id, wx, wy, true);
-            if (w.equipped() > 0) g.fill(wx + 15, wy + 1, 4, 4, Pal.RARITY[3]);
+            if (w.equipped() > 0) g.fillEllipse(wx + 17, wy + 3, 2, 2, Pal.RARITY[3]);
+            if (infoWeapon == i) g.roundBorder(wx - 1, wy - 1, 22, 22, 5, 2, Pal.RED);
             ui.region(B_ENEMY_WEAPON + i, wx, wy, 20, 20);
         }
         if (infoWeapon >= 0 && infoWeapon < enemy.weapons.size()) {
             WeaponInst w = enemy.weapons.get(infoWeapon);
-            g.text(BattleScreen.ellipsize(w.displayName(), W() - ix - 10), ix, py + 88, Pal.INK);
-            g.text("Schlägt:", ix, py + 99, Pal.GREEN);
+            g.text(BattleScreen.ellipsize(w.displayName(), W() - ix - 12), ix, py + 89, Pal.INK);
+            g.text("Schlägt:", ix, py + 100, Pal.GREEN);
             int[] bl = Element.beatsList(w.def.type);
-            for (int k = 0; k < bl.length; k++) g.sprite(Art.typeIcon(bl[k]), ix + 42 + k * 11, py + 98);
+            int k2 = 0;
+            for (int k = 0; k < bl.length; k++) g.spriteHD(Art.typeIcon(bl[k]), ix + 38 + (k2++) * 11, py + 99);
             int extraTypes = w.stats().breaks;
-            int k2 = bl.length;
             for (int t = 0; t < Element.COUNT; t++) {
-                if ((extraTypes & (1 << t)) != 0 && !Element.beats(w.def.type, t)) g.sprite(Art.typeIcon(t), ix + 42 + (k2++) * 11, py + 98);
+                if ((extraTypes & (1 << t)) != 0 && !Element.beats(w.def.type, t)) g.spriteHD(Art.typeIcon(t), ix + 38 + (k2++) * 11, py + 99);
             }
         } else {
-            g.text(boss ? "Sieg: Goldkiste + volle KP" : "Tippe Waffen für Infos", ix, py + 92, Pal.INK_SOFT);
+            Ui.paragraph(g, boss ? "Sieg: Goldkiste, 2 Karten + volle KP" : "Tippe eine Waffe für Infos", ix, py + 90, W() - ix - 12, Pal.INK_SOFT);
+        }
+
+        // ---- reward preview
+        int my = py + ph + gap;
+        if (strip) {
+            drawPrize(g, my, rh, boss);
+            my += rh + gap;
         }
 
         // ---- player panel
-        int my = py + ph + 6 + gap;
         Fighter pl = run.player;
-        Ui.panel(g, 6, my, W() - 12, 38, Pal.WHITE, Pal.INK);
-        g.text(pl.name, 12, my + 5, Pal.INK);
-        g.textRight("Lv." + stage, W() - 12, my + 5, Pal.INK);
-        Ui.hpBar(g, 12, my + 17, 120, pl.hp, pl.maxHp);
-        g.text(pl.hp + "/" + pl.maxHp, 138, my + 17, Pal.INK);
-        g.text("Waffen " + pl.weapons.size() + "/" + Run.MAX_WEAPONS + "   Karten frei: " + freeCards(), 12, my + 27, Pal.INK_SOFT);
+        Ui.box(g, 6, my, W() - 12, 44);
+        g.text(pl.name, 13, my + 6, Pal.INK);
+        g.textRight("Lv." + stage, W() - 13, my + 6, Pal.ACCENT);
+        Ui.hpBar(g, 13, my + 18, 120, pl.hp, pl.maxHp);
+        g.text(pl.hp + " / " + pl.maxHp, 140, my + 18, Pal.INK);
+        g.text("Freie Karten: " + freeCards(), 13, my + 30, Pal.INK_SOFT);
+        for (int s = 0; s < Run.SPECIALS; s++) {
+            WeaponInst w = pl.special(s);
+            int wx = W() - 13 - (Run.SPECIALS - s) * 15;
+            g.roundRect(wx, my + 28, 13, 13, 3, Pal.lighten(Element.COLOR[w.def.type], 0.5f));
+            g.spriteHD(WeaponArt.iconSmall(w.def.id), wx + 1, my + 29);
+        }
 
         // ---- buttons
-        int by = my + 46 + gap;
         String fight = run.phase == Run.PHASE_BATTLE ? "WEITERKÄMPFEN!" : (boss ? "BOSS HERAUSFORDERN!" : "KÄMPFEN!");
         ui.button(g, B_FIGHT, 12, by, W() - 24, 28, fight, Ui.BTN_PRIMARY);
         int bw = (W() - 24 - 12) / 3;
         ui.button(g, B_ARSENAL, 12, by + 32, bw, 22, "ARSENAL", Ui.BTN_NORMAL);
         ui.button(g, B_CARDS, 18 + bw, by + 32, bw, 22, "KARTEN", Ui.BTN_NORMAL);
         ui.button(g, B_MENU, 24 + bw * 2, by + 32, bw, 22, "MENÜ", Ui.BTN_NORMAL);
+    }
+
+    /** What a victory brings: two bonus cards and a box. */
+    private void drawPrize(Gfx g, int y, int h, boolean boss) {
+        Ui.box(g, 6, y, W() - 12, h);
+        String cards = Run.CARDS_PER_WIN + " Bonuskarten";
+        String box = boss ? "Goldkiste" : "Kiste";
+        Sprite body = Art.box(boss ? Art.BOX_GOLD : Art.BOX_WOOD, 0), lid = Art.box(boss ? Art.BOX_GOLD : Art.BOX_WOOD, 1);
+        int lw = Font.width("SIEG:", 1), cw = Font.width(cards, 1), plus = Font.width("+", 1), bw = Font.width(box, 1);
+        int total = lw + 6 + 19 + 4 + cw + 6 + plus + 6 + body.w / 2 + 4 + bw;
+        int x = (W() - total) / 2;
+        int ty = y + h / 2 - 4;
+        g.text("SIEG:", x, ty, Pal.INK_SOFT);
+        x += lw + 6;
+        for (int i = 0; i < 2; i++) {
+            int cx = x + i * 7, cy = y + h / 2 - 8 + (i == 0 ? 1 : -1);
+            g.roundRectGrad(cx, cy, 12, 16, 3, 0xFF8C80FF, Pal.ACCENT_DARK);
+            g.roundBorder(cx, cy, 12, 16, 3, 1, Pal.WHITE);
+            g.textCenter(String.valueOf(Font.STAR), cx + 6, cy + 4, 0xFFFFD86A);
+        }
+        x += 19 + 4;
+        g.text(cards, x, ty, Pal.INK);
+        x += cw + 6;
+        g.text("+", x, ty, Pal.INK_SOFT);
+        x += plus + 6;
+        int bx = x, byy = y + h / 2 - 1;
+        g.spriteHD(body, bx, byy);
+        g.spriteHD(lid, bx, byy - lid.h / 2 + 2);
+        x += body.w / 2 + 4;
+        g.text(box, x, ty, boss ? 0xFFC98A00 : Pal.INK);
     }
 
     private int freeCards() {

@@ -8,14 +8,34 @@ import java.util.Random;
 /** Game rules around a run that are independent of the UI. */
 public final class RunLogic {
 
-    /** Draws a bonus card after a won round and adds it to the collection. */
+    /** Draws a bonus card and adds it to the collection. */
     public static BonusDef drawCard(Profile p, Random r) {
         int luck = p.run != null ? p.run.player.passive().luck : 0;
         BonusDef b = Cards.randomCard(r, luck);
         p.addCard(b.id);
         if (p.run != null) p.run.cardsDrawn++;
-        p.roundsWon++;
         return b;
+    }
+
+    /**
+     * Rolls the weapon inside a box: a still locked special weapon (rarity by
+     * box tier), or -1 if every weapon is unlocked already.
+     */
+    public static int rollBoxWeapon(Profile p, Random r, int tier) {
+        if (p.lockedCount() == 0) return -1;
+        for (int attempt = 0; attempt < 60; attempt++) {
+            int rarity = Cards.rollRarity(r, Cards.boxWeights(tier));
+            int count = 0;
+            for (WeaponDef d : WeaponDef.ALL) if (d.rarity == rarity && !d.isClassic() && !p.owned[d.id]) count++;
+            if (count == 0) continue;
+            int pick = r.nextInt(count);
+            for (WeaponDef d : WeaponDef.ALL) {
+                if (d.rarity != rarity || d.isClassic() || p.owned[d.id]) continue;
+                if (pick-- == 0) return d.id;
+            }
+        }
+        for (WeaponDef d : WeaponDef.ALL) if (!d.isClassic() && !p.owned[d.id]) return d.id;
+        return -1;
     }
 
     /** Applies a victory: stats, level up, healing and the reward box. Returns HP healed. */
@@ -30,18 +50,24 @@ public final class RunLogic {
         pl.baseMaxHp += Run.HP_PER_STAGE;
         pl.recalcMaxHp();
         int before = pl.hp;
-        int heal = boss ? pl.maxHp : Math.max(1, pl.maxHp * 25 / 100);
+        int heal = boss ? pl.maxHp : Math.max(1, pl.maxHp * 40 / 100);
         pl.hp = Math.min(pl.maxHp, pl.hp + heal + Run.HP_PER_STAGE);
         if (boss) run.rewardBox = Art.BOX_GOLD;
         else run.rewardBox = r.nextInt(100) < 20 + run.stage * 2 ? Art.BOX_IRON : Art.BOX_WOOD;
+        // two bonus cards per defeated opponent
+        run.pendingCards = new int[Run.CARDS_PER_WIN];
+        for (int i = 0; i < Run.CARDS_PER_WIN; i++) run.pendingCards[i] = drawCard(p, r).id;
+        run.usedMask = 0;
+        run.enemyUsedMask = 0;
         run.stage++;
+        pl.dmgPct = Run.playerDmgPct(run.stage);
         run.enemyHp = -1;
         run.phase = Run.PHASE_REWARD;
         p.bestStage = Math.max(p.bestStage, run.stage - 1);
         return pl.hp - before;
     }
 
-    /** Run lost: cards stay in the collection (they are simply unequipped). */
+    /** Run lost: cards and unlocked weapons stay (cards get redistributed in the next run). */
     public static void onDefeat(Profile p) {
         p.runs++;
         if (p.run != null) p.bestStage = Math.max(p.bestStage, p.run.stage - 1);

@@ -1,8 +1,9 @@
 package de.chr1ss0.ssp.core;
 
 /**
- * 16x16 pixel art for all 50 weapons. Art is written without outline; a dark
- * outline is generated automatically around every shape.
+ * Pixel art for all 50 weapons. The base art (max 14x14, no outline) is turned
+ * into 32x32 HD icons by {@link Shade}: Scale2x upscaling, volume shading,
+ * material texture and a selective outline.
  */
 public final class WeaponArt {
 
@@ -767,11 +768,25 @@ public final class WeaponArt {
 
     private static final Sprite[] CACHE = new Sprite[ART.length];
 
+    /** 32x32 HD icon (upscaled, shaded, textured, outlined). */
     public static Sprite icon(int weaponId) {
         Sprite s = CACHE[weaponId];
         if (s == null) {
-            s = Sprite.parseFixed(ART[weaponId], 16, 16);
+            Sprite base = Sprite.parse(ART[weaponId], false);
+            s = Shade.enhance(Shade.center(Shade.scale2x(base), 32, 32), 1f, weaponId * 31 + 7);
             CACHE[weaponId] = s;
+        }
+        return s;
+    }
+
+    private static final Sprite[] SMALL = new Sprite[ART.length];
+
+    /** 22x22 downscaled icon for tiny tiles. */
+    public static Sprite iconSmall(int weaponId) {
+        Sprite s = SMALL[weaponId];
+        if (s == null) {
+            s = Shade.downscale(icon(weaponId), 22, 22);
+            SMALL[weaponId] = s;
         }
         return s;
     }
